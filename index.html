@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Document Network — Why Pane + Governance Meta</title>
+<title>Document Network — Refined View Toggle</title>
 
 <!-- D3.js -->
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -25,6 +25,30 @@
     --text:#0f172a;
     --muted:#475569;
     --accent:#0ea5e9;
+    --border: rgba(15,23,42,.10);
+    --shadow-1: 0 10px 30px rgba(2,8,20,.06), 0 2px 8px rgba(2,8,20,.06);
+    --shadow-2: 0 6px 16px rgba(14,165,233,.35);
+    --chip-bg:#fff;
+    --chip-border: rgba(15,23,42,.12);
+    --pill-bg:#fff;
+  }
+  .theme-dark{
+    --bg-grad-1:#0b1220;
+    --bg-grad-2:#0b0f1a;
+    --card-bg:#0e1626;
+    --link:#7a8aa3;
+    --link-active:#38bdf8;
+    --node-grad-a:#22d3ee;
+    --node-grad-b:#6366f1;
+    --text:#e5e7eb;
+    --muted:#9aa3b2;
+    --accent:#38bdf8;
+    --border: rgba(148,163,184,.18);
+    --shadow-1: 0 10px 30px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.25);
+    --shadow-2: 0 6px 16px rgba(56,189,248,.35);
+    --chip-bg:#0b1322;
+    --chip-border: rgba(148,163,184,.22);
+    --pill-bg:#0b1322;
   }
 
   html, body { height:100%; }
@@ -38,7 +62,7 @@
 
   .layout {
     display:grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 360px 1fr;
     grid-template-rows: auto 1fr;
     grid-template-areas:
       "header header"
@@ -47,7 +71,15 @@
     gap:14px;
     padding:16px;
     box-sizing:border-box;
+    transition:grid-template-columns .22s ease;
   }
+
+  /* Full Document Library mode */
+  body.doclib-full .layout{
+    grid-template-columns: 1fr 0;
+  }
+  body.doclib-full .main{ display:none; }
+  body.doclib-full .sidebar{ box-shadow:var(--shadow-1); }
 
   .header {
     grid-area:header;
@@ -59,82 +91,130 @@
 
   .search {
     display:flex; align-items:center; gap:8px;
-    background:#fff; border:1px solid rgba(15,23,42,.08);
+    background:var(--card-bg); border:1px solid var(--border);
     border-radius:10px; padding:8px 10px;
-    box-shadow:0 2px 8px rgba(2,8,20,.06);
+    box-shadow:var(--shadow-1);
   }
   .search input{
-    border:none; outline:none; font-size:13px; width:220px;
+    border:none; outline:none; font-size:13px; width:220px; background:transparent; color:var(--text);
   }
+  .search svg path{ stroke:var(--muted); }
 
+  /* Threshold control (kept in place but disabled in Library view) */
   .range {
-    background:#fff; border:1px solid rgba(15,23,42,.08);
+    background:var(--card-bg); border:1px solid var(--border);
     border-radius:10px; padding:6px 10px;
     display:flex; align-items:center; gap:8px; font-size:12px;
-    box-shadow:0 2px 8px rgba(2,8,20,.06);
+    box-shadow:var(--shadow-1); color:var(--text);
+    min-width: 260px; /* keeps width consistent when dimmed */
   }
   .range input[type=range]{ width:160px; }
+  .range.disabled { opacity:.45; pointer-events:none; }
 
   .btn {
-    background:var(--accent); color:#fff; border:none; border-radius:10px;
+    background:var(--accent); color:#001018; border:none; border-radius:10px;
     padding:10px 12px; font-weight:600; cursor:pointer;
-    box-shadow:0 6px 16px rgba(14,165,233,.35);
+    box-shadow:var(--shadow-2);
   }
-  .btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .btn.ghost{ background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none; }
+
+  .icon-btn{
+    display:flex; align-items:center; gap:8px;
+    background:var(--card-bg); color:var(--text); border:1px solid var(--border);
+    border-radius:10px; padding:8px 10px; cursor:pointer; box-shadow:var(--shadow-1);
+  }
+  .icon-btn svg path, .icon-btn svg circle{ stroke:var(--text); }
+
+  /* Refined View Toggle: compact pill with icon & target label */
+  #viewToggleBtn{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 12px; border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--card-bg);
+    box-shadow:var(--shadow-1);
+    font-weight:700; cursor:pointer;
+  
+    width: 240px; /* keep size constant regardless of label length */
+    justify-content: center;
+    white-space: nowrap;
+  }
+  #viewToggleBtn .target{ font-size:12px; }
+  #viewToggleBtn .sep{ opacity:.35; }
+  #viewToggleBtn .hint{ font-size:11px; color:var(--muted); }
+
+  /* Light mode gradient for key buttons */
+  body:not(.theme-dark) #viewToggleBtn,
+  body:not(.theme-dark) #fileBtn{
+    background: linear-gradient(135deg, var(--node-grad-a), var(--node-grad-b));
+    color:#fff;
+    border:none;
+    box-shadow: 0 4px 12px rgba(14,165,233,.35);
+  }
+  body:not(.theme-dark) #viewToggleBtn .hint{ color:rgba(255,255,255,.85); }
+  body:not(.theme-dark) #viewToggleBtn svg path,
+  body:not(.theme-dark) #viewToggleBtn svg circle{ stroke:#fff; }
 
   .sidebar {
     grid-area:sidebar;
     background:var(--card-bg);
     border-radius:14px;
-    box-shadow:0 10px 30px rgba(2,8,20,.06), 0 2px 8px rgba(2,8,20,.06);
+    box-shadow:var(--shadow-1);
     overflow:hidden;
     display:flex; flex-direction:column;
   }
   .side-head {
-    padding:12px 14px; border-bottom:1px solid rgba(15,23,42,.06);
+    padding:12px 14px; border-bottom:1px solid var(--border);
     display:flex; align-items:center; justify-content:space-between; gap:8px;
   }
-  .side-title { font-weight:600; }
+  .side-title { font-weight:600; display:flex; align-items:center; gap:8px; }
 
   .drop {
-    margin:12px; padding:16px; border:1.5px dashed rgba(15,23,42,.15);
-    border-radius:12px; background:rgba(255,255,255,.6);
+    margin:12px; padding:16px; border:1.5px dashed var(--border);
+    border-radius:12px; background:rgba(255,255,255,.04);
     text-align:center; font-size:13px; color:var(--muted);
   }
-  .drop.dragover { border-color:var(--accent); background:rgba(14,165,233,.08); color:#0ea5e9; }
+  .theme-dark .drop{ background:rgba(255,255,255,.02); }
+  .drop.dragover { border-color:var(--accent); background:rgba(14,165,233,.08); color:var(--accent); }
 
-  .docs { overflow:auto; padding:6px 6px 10px 6px; }
+  .docs { overflow:auto; padding:6px 6px 12px 6px; }
   .doc {
-    border:1px solid rgba(15,23,42,.08); background:#fff; border-radius:10px;
+    border:1px solid var(--border); background:var(--card-bg); border-radius:12px;
     padding:10px; margin:8px; cursor:pointer;
+    transition:box-shadow .15s ease, border-color .15s ease, background .15s ease;
   }
   .doc:hover{ border-color:rgba(14,165,233,.5); box-shadow:0 2px 10px rgba(14,165,233,.12); }
-  .doc .name { font-weight:600; font-size:13px; }
+  .doc .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .doc .name { font-weight:600; font-size:13px; color:var(--text); }
   .doc .meta { color:var(--muted); font-size:12px; margin-top:4px; }
+  .caret{ transition:transform .18s ease; }
+  .doc.expanded .caret{ transform:rotate(90deg); }
 
-  .details {
-    border-top:1px solid rgba(15,23,42,.06);
-    padding:12px 14px; font-size:13px; min-height:150px;
+  .doc-meta-inline{
+    margin:8px 8px 4px 8px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border:1px solid var(--border);
+    border-radius:12px; padding:12px; color:var(--text);
   }
-  .details h4 { margin:0 0 8px 0; font-size:13px; }
-  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; margin-right:6px; border:1px solid rgba(15,23,42,.12); background:#fff; }
-
   .grid {
     display:grid; grid-template-columns: 1fr 1fr; gap:8px 12px; margin-top:8px;
   }
   .field {
-    background:#f8fafc; border:1px solid rgba(15,23,42,.08);
+    background:var(--card-bg); border:1px solid var(--border);
     border-radius:8px; padding:8px;
   }
-  .field .label { font-size:11px; color:#64748b; }
-  .field .value { font-weight:600; margin-top:2px; }
+  .field .label { font-size:11px; color:var(--muted); }
+  .field .value { font-weight:600; margin-top:2px; color:var(--text); }
+
+  .subtle { color:var(--muted); font-size:12px; }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .chip{ padding:4px 8px; background:var(--chip-bg); border:1px solid var(--chip-border); border-radius:999px; font-size:12px; cursor:pointer; color:var(--text); }
+  .chip:hover{ border-color:var(--accent); }
 
   .main {
     grid-area:main;
     position:relative;
     background:var(--card-bg);
     border-radius:14px;
-    box-shadow:0 10px 30px rgba(2,8,20,.06), 0 2px 8px rgba(2,8,20,.06);
+    box-shadow:var(--shadow-1);
     overflow:hidden;
     min-height:320px;
   }
@@ -143,17 +223,17 @@
     position:absolute;
     pointer-events:none;
     padding:10px 12px;
-    background:#fff;
-    color:#111827;
+    background:var(--card-bg);
+    color:var(--text);
     border-radius:10px;
     font-size:13px;
     line-height:1.45;
-    box-shadow:0 8px 24px rgba(15,23,42,.14);
+    box-shadow:var(--shadow-1);
     opacity:0;
     transform:translateY(-2px);
     transition:opacity .16s ease, transform .16s ease;
     max-width:240px;
-    border:1px solid rgba(15,23,42,.06);
+    border:1px solid var(--border);
     white-space:pre-wrap;
   }
   .tooltip.show{ opacity:1; transform:translateY(0); }
@@ -167,7 +247,7 @@
     filter:drop-shadow(0 2px 5px rgba(2,8,20,.2));
     transition:r .2s ease, filter .2s ease;
   }
-  .node:hover circle{ r:24; filter:drop-shadow(0 6px 12px rgba(2,8,20,.28)); }
+  .theme-dark .node circle{ stroke:rgba(255,255,255,.8); }
 
   .node text{ font-size:13px; font-weight:600; fill:#fff; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
   .node-label-bg{
@@ -179,64 +259,69 @@
   .legend{
     position:absolute; left:12px; bottom:10px;
     background:rgba(255,255,255,.85);
-    border:1px solid rgba(15,23,42,.08);
+    border:1px solid var(--border);
     backdrop-filter:saturate(140%) blur(6px);
     padding:6px 10px; border-radius:8px; font-size:12px; color:#0f172a;
+  }
+  .theme-dark .legend{
+    background:rgba(15,23,42,.65);
+    color:#e5e7eb;
   }
   .hint{
     position:absolute; right:12px; bottom:10px;
     font-size:12px; color:var(--muted);
-    background:rgba(255,255,255,.85); border:1px solid rgba(15,23,42,.08);
+    background:rgba(255,255,255,.85); border:1px solid var(--border);
     padding:6px 10px; border-radius:8px;
   }
+  .theme-dark .hint{
+    background:rgba(15,23,42,.65);
+    color:#e5e7eb;
+  }
 
-  /* Why panel */
   .why-panel {
     position:absolute; top:12px; right:12px; width:420px;
-    background:#fff; border:1px solid rgba(15,23,42,.08); border-radius:12px;
-    box-shadow:0 10px 30px rgba(2,8,20,.1);
+    background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
+    box-shadow:var(--shadow-1);
     padding:12px; font-size:13px; display:none;
-    max-height:80vh; overflow:auto;
+    max-height:80vh; overflow:auto; color:var(--text);
   }
   .why-panel h4{ margin:4px 0 8px 0; font-size:14px; }
-  .why-panel .close{ float:right; cursor:pointer; color:#64748b; }
+  .why-panel .close{ float:right; cursor:pointer; color:var(--muted); }
   .match-card{
-    border:1px solid rgba(15,23,42,.08);
-    border-radius:10px; padding:10px; margin:8px 0; background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px; padding:10px; margin:8px 0; background:var(--card-bg); color:var(--text);
   }
   .pair-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
   .pair-head .score{ font-weight:600; }
   .pair-texts{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:8px; }
-  .pair-text{ font-size:12px; line-height:1.45; background:#f8fafc; border:1px solid rgba(15,23,42,.06); border-radius:8px; padding:8px; max-height:140px; overflow:auto; }
-  .pair-meta{ margin-top:6px; color:#475569; font-size:11px; display:flex; gap:8px; flex-wrap:wrap; }
+  .pair-text{ font-size:12px; line-height:1.45; background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--border); border-radius:8px; padding:8px; max-height:140px; overflow:auto; color:var(--text); }
+  .pair-meta{ margin-top:6px; color:var(--muted); font-size:11px; display:flex; gap:8px; flex-wrap:wrap; }
   .pair-actions{ margin-top:8px; display:flex; gap:8px; }
-  .ghost{ background:#f1f5f9; color:#0f172a; border:1px solid rgba(15,23,42,.12); }
   mark{ background:#fde68a; padding:0 2px; border-radius:3px; }
 
-  /* Modal viewer */
   .modal {
     position:fixed; inset:0; background:rgba(2,8,20,.55);
     display:none; align-items:center; justify-content:center; padding:24px;
   }
   .modal .inner{
-    width:min(1100px, 96vw); max-height:90vh; background:#fff; border-radius:14px;
+    width:min(1100px, 96vw); max-height:90vh; background:var(--card-bg); color:var(--text); border-radius:14px;
     box-shadow:0 20px 60px rgba(2,8,20,.4); overflow:hidden; display:flex; flex-direction:column;
   }
   .modal .bar{
     display:flex; justify-content:space-between; align-items:center; padding:12px 14px;
-    border-bottom:1px solid rgba(15,23,42,.08);
+    border-bottom:1px solid var(--border);
   }
   .modal .content{
     display:grid; grid-template-columns: 1fr 1fr; gap:0; flex:1; overflow:auto;
   }
   .side{
-    padding:14px; border-right:1px solid rgba(15,23,42,.06);
+    padding:14px; border-right:1px solid var(--border);
   }
   .side:last-child{ border-right:none; }
   .side h5{ margin:0 0 6px 0; font-size:13px; }
   .excerpt{
-    background:#f8fafc; border:1px solid rgba(15,23,42,.08);
-    border-radius:10px; padding:10px; font-size:13px; line-height:1.55; white-space:pre-wrap;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--border);
+    border-radius:10px; padding:10px; font-size:13px; line-height:1.55; white-space:pre-wrap; color:var(--text);
   }
 </style>
 </head>
@@ -246,37 +331,58 @@
     <div class="header">
       <div class="brand">Document Network</div>
       <div class="controls">
+        <!-- Search -->
         <div class="search">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>
           <input id="searchInput" placeholder="Search documents..." />
         </div>
-        <div class="range">
+
+        <!-- Link Threshold -->
+        <div class="range" id="rangeWrap">
           <span>Link threshold</span>
           <input type="range" id="threshold" min="0" max="100" value="30" />
           <span id="thLabel">0.30</span>
         </div>
+
+        <!-- Refined toggle placed to the RIGHT of Link Threshold; static position in both views -->
+        <button id="viewToggleBtn" class="icon-btn" aria-pressed="false" title="Switch to Document Library" aria-keyshortcuts="v">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path id="viewIcon" d="M3 12h18M3 6h12M3 18h12" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="target" id="viewToggleTarget">Current View: Diagram</span>
+          <span class="sep">•</span>
+          <span class="hint">press V</span>
+        </button>
+
         <button class="btn" id="fileBtn">Add documents</button>
         <input type="file" id="fileInput" multiple style="display:none" accept=".txt,.md,.pdf,.docx,.html,.csv"/>
+
+        <!-- Theme toggle -->
+        <button class="icon-btn" id="themeBtn" aria-pressed="false" title="Toggle light/dark mode">
+          <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" stroke-width="2" />
+            <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span id="themeLabel" style="font-weight:600;font-size:12px;">Light</span>
+        </button>
       </div>
     </div>
 
-    <!-- Sidebar -->
+    <!-- Sidebar / Document Library -->
     <aside class="sidebar">
       <div class="side-head">
-        <div class="side-title">Documents</div>
+        <div class="side-title">
+          <span>Documents</span>
+        </div>
         <div class="subtle" id="docCount">0 items</div>
       </div>
       <div class="drop" id="dropZone">
         Drop files here (.txt/.md recommended for demo).<br/>Or click “Add documents”.
       </div>
-      <div class="docs" id="docList"></div>
-      <div class="details" id="docDetails">
-        <h4>Details</h4>
-        <div id="docMeta" class="subtle">Select a document to see summary and metadata.</div>
-      </div>
+      <div class="docs" id="docList" aria-live="polite"></div>
     </aside>
 
-    <!-- Main graph -->
+    <!-- Main graph (Diagram view) -->
     <main class="main" id="graph"></main>
   </div>
 
@@ -309,15 +415,44 @@
 </div>
 
 <script>
+// ------------------------------ Theme: init & toggle ------------------------------
+(function initTheme(){
+  const saved = localStorage.getItem('docnet-theme');
+  const preferDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const startDark = saved ? (saved === 'dark') : preferDark;
+  if(startDark) document.body.classList.add('theme-dark');
+  updateThemeButton();
+})();
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  document.body.classList.toggle('theme-dark');
+  const dark = document.body.classList.contains('theme-dark');
+  localStorage.setItem('docnet-theme', dark ? 'dark' : 'light');
+  updateThemeButton();
+});
+
+function updateThemeButton(){
+  const dark = document.body.classList.contains('theme-dark');
+  const label = document.getElementById('themeLabel');
+  const icon = document.getElementById('themeIcon');
+  label.textContent = dark ? 'Dark' : 'Light';
+  document.getElementById('themeBtn').setAttribute('aria-pressed', dark ? 'true' : 'false');
+  if(dark){
+    icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  } else {
+    icon.innerHTML = `<circle cx="12" cy="12" r="4" stroke-width="2" /><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" stroke-width="2" stroke-linecap="round"/>`;
+  }
+}
+
 // ------------------------------ Helpers: tokenization & TF-IDF ------------------------------
 const stopwords = new Set("a,an,and,are,as,at,be,by,for,from,has,he,in,is,it,its,of,on,that,the,to,was,were,will,with,or,not,if,then,into,over,under,between,than,about,after,before,again,once,only,other,own,same,so,too,very,can,just,should,now".split(","));
 
 function tokenize(text){
   return (text||"")
     .toLowerCase()
-    .replace(/[\u2018\u2019\u201C\u201D]/g, "'")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
+    .replace(/[\\u2018\\u2019\\u201C\\u201D]/g, "'")
+    .replace(/[^a-z0-9\\s]/g, " ")
+    .split(/\\s+/)
     .filter(t => t && !stopwords.has(t) && t.length > 1);
 }
 function tf(tokens){
@@ -359,7 +494,7 @@ function cosineSim(vecA, vecB){
 function splitSentences(text){
   const out = [];
   let start = 0;
-  const re = /([^.!?]+[.!?])|([^\n]+(\n|$))/g;
+  const re = /([^.!?]+[.!?])|([^\\n]+(\\n|$))/g;
   let m;
   while ((m = re.exec(text)) !== null){
     const s = m[0].trim();
@@ -373,26 +508,24 @@ function splitSentences(text){
   return out;
 }
 
-// highlight terms in text
-function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function escapeHtml(s){ return s.replace(/[&<>\"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;","'":"&#39;" }[m])); }
 function highlightTerms(text, terms){
   let esc = escapeHtml(text);
   const uniq = Array.from(new Set(terms)).sort((a,b)=>b.length - a.length);
   for(const t of uniq){
     if(!t || t.length < 2) continue;
-    const re = new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const re = new RegExp(`\\\\b${t.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\\\b`, 'gi');
     esc = esc.replace(re, m => `<mark>${m}</mark>`);
   }
   return esc;
 }
 
-// Governance placeholders
+// Governance placeholders and extra metadata
 const OWNER_NAMES = ["Alex Morgan","Priya Nair","Liam O'Connor","Sofia Rossi","Chen Wei","Amira Haddad","Jonas Müller","Isabella García"];
 const APPROVER_NAMES = ["Maya Patel","Tom Andersen","Noah Brown","Olivia Martin","Hiro Tanaka","Grace Lee","Samuel Kim","Ava Thompson"];
+const TOPICS = ["Information Security","Operational Risk","Vendor Oversight","Business Continuity","Privacy","Access Management","Incident Response","Audit"];
 
-function pick(arr, seed){
-  return arr[seed % arr.length];
-}
+function pick(arr, seed){ return arr[seed % arr.length]; }
 function formatDate(d){
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,'0');
@@ -400,24 +533,22 @@ function formatDate(d){
   return `${y}-${m}-${day}`;
 }
 function fakeGovernance(seed){
-  // effective date within last 18 months; next refresh 12 months after effective
   const now = new Date();
   const monthsBack = (seed % 18) + 1;
-  const eff = new Date(now);
-  eff.setMonth(eff.getMonth() - monthsBack);
-  const next = new Date(eff);
-  next.setMonth(next.getMonth() + 12);
+  const eff = new Date(now); eff.setMonth(eff.getMonth() - monthsBack);
+  const next = new Date(eff); next.setMonth(next.getMonth() + 12);
   return {
     owner: pick(OWNER_NAMES, seed),
     approver: pick(APPROVER_NAMES, seed+3),
     effectiveDate: formatDate(eff),
-    nextRefreshDate: formatDate(next)
+    nextApprovalDate: formatDate(next),
+    topic: pick(TOPICS, seed+5)
   };
 }
 
 // ------------------------------ App state ------------------------------
-let documents = []; // {id, name, text, tokens, tf, vec, summary, sentences:[], owner, approver, effectiveDate, nextRefreshDate}
-let links = [];     // {source, target, value}
+let documents = [];
+let links = [];
 let idCounter = 1;
 
 // ------------------------------ UI elements ------------------------------
@@ -426,8 +557,6 @@ const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const docList = document.getElementById('docList');
 const docCount = document.getElementById('docCount');
-const docDetails = document.getElementById('docDetails');
-const docMeta = document.getElementById('docMeta');
 const searchInput = document.getElementById('searchInput');
 const thresholdEl = document.getElementById('threshold');
 const thLabel = document.getElementById('thLabel');
@@ -435,6 +564,10 @@ const whyPanel = document.getElementById('whyPanel');
 const whyClose = document.getElementById('whyClose');
 const whyHeader = document.getElementById('whyHeader');
 const whyContent = document.getElementById('whyContent');
+const rangeWrap = document.getElementById('rangeWrap');
+const viewToggleBtn = document.getElementById('viewToggleBtn');
+const viewToggleTarget = document.getElementById('viewToggleTarget');
+const viewIcon = document.getElementById('viewIcon');
 
 whyClose.addEventListener('click', ()=> whyPanel.style.display='none');
 
@@ -455,6 +588,40 @@ thresholdEl.addEventListener('input', () => {
   recomputeLinks(); drawGraph(); 
 });
 
+// -------------- Refined View Toggle Logic --------------
+function applyView(mode){
+  const isLibrary = (mode === 'library');
+  document.body.classList.toggle('doclib-full', isLibrary);
+  viewToggleBtn.setAttribute('aria-pressed', isLibrary ? 'true' : 'false');
+  // keep toggle in same spot; only dim threshold
+  rangeWrap.classList.toggle('disabled', isLibrary);
+  // target label indicates what you'll go TO next
+  viewToggleTarget.textContent = isLibrary ? 'Current View: Library' : 'Current View: Diagram';
+  viewToggleBtn.title = isLibrary ? 'Switch to Diagram' : 'Switch to Document Library';
+  // swap icon (list for library target, graph for diagram target)
+  if(isLibrary){
+    viewIcon.setAttribute('d','M4 4h16v6H4zM4 14h16v6H4z'); // stacked rows = diagram target? flip: we want icon for target
+  } else {
+    viewIcon.setAttribute('d','M3 12h18M3 6h12M3 18h12'); // list icon when target is library
+  }
+  localStorage.setItem('docnet-view', mode);
+}
+function toggleView(){
+  const isLibrary = document.body.classList.contains('doclib-full');
+  applyView(isLibrary ? 'diagram' : 'library');
+}
+viewToggleBtn.addEventListener('click', toggleView);
+document.addEventListener('keydown', (e) => {
+  if(e.key.toLowerCase()==='v' && !e.metaKey && !e.ctrlKey && !e.altKey){
+    e.preventDefault(); toggleView();
+  }
+});
+// init from storage
+(function initView(){
+  const saved = localStorage.getItem('docnet-view');
+  applyView(saved === 'library' ? 'library' : 'diagram');
+})();
+
 // ------------------------------ File handling ------------------------------
 async function handleFiles(fileList){
   const files = Array.from(fileList||[]);
@@ -470,15 +637,15 @@ async function handleFiles(fileList){
     }
     addDocument(file.name, text);
   }
-  renderDocList();
   recomputeLinks();
   drawGraph();
+  renderDocList();
 }
 
 function addDocument(name, text){
   const tokens = tokenize(text);
   const tfMap = tf(tokens);
-  const summary = (text||'').split(/\s+/).slice(0,40).join(' ');
+  const summary = (text||'').split(/\\s+/).slice(0,40).join(' ');
   const sentences = splitSentences(text).map(s => {
     const toks = tokenize(s.text);
     return { ...s, tokens: toks, tf: tf(toks), vec: null };
@@ -486,8 +653,16 @@ function addDocument(name, text){
   const meta = fakeGovernance(idCounter);
   const doc = { 
     id: 'doc' + (idCounter++), name, text, tokens, tf: tfMap, vec:null, summary, sentences,
-    owner: meta.owner, approver: meta.approver, effectiveDate: meta.effectiveDate, nextRefreshDate: meta.nextRefreshDate
+    owner: meta.owner, approver: meta.approver, effectiveDate: meta.effectiveDate, nextApprovalDate: meta.nextApprovalDate,
+    topic: meta.topic, supportIds: [], history: []
   };
+  const idx = documents.length;
+  if(idx >= 1) doc.supportIds.push(documents[idx-1].id);
+  if(idx >= 2) doc.supportIds.push(documents[idx-2].id);
+  doc.history = [
+    { version: "v" + (1 + Math.floor(Math.random()*2)) + ".0", date: meta.effectiveDate, note: "Initial publication" },
+    { version: "v" + (2 + Math.floor(Math.random()*2)) + ".1", date: meta.nextApprovalDate, note: "Scheduled review" }
+  ];
   documents.push(doc);
   docCount.textContent = documents.length + ' items';
 }
@@ -510,139 +685,80 @@ function recomputeLinks(){
 }
 
 // ------------------------------ Sidebar rendering ------------------------------
+let expandedDocId = null;
 function renderDocList(){
   const q = (searchInput.value||'').toLowerCase();
-  docList.innerHTML = '';
+  const list = document.getElementById('docList');
+  list.innerHTML = '';
   documents
     .filter(d => d.name.toLowerCase().includes(q) || (d.text||'').toLowerCase().includes(q))
     .forEach(d => {
-      const div = document.createElement('div');
-      div.className = 'doc';
-      div.innerHTML = `<div class="name">${d.name}</div>
-                       <div class="meta">${d.tokens.length} tokens • Owner: ${d.owner}</div>`;
-      div.addEventListener('click', ()=> showDetails(d));
-      docList.appendChild(div);
+      const card = document.createElement('div');
+      const isExpanded = (expandedDocId === d.id);
+      card.className = 'doc' + (isExpanded ? ' expanded' : '');
+      card.setAttribute('role','button');
+      card.setAttribute('tabindex','0');
+      card.innerHTML = `<div class="row">
+                          <div>
+                            <div class="name">${d.name}</div>
+                            <div class="meta">${d.tokens.length} tokens • Owner: ${d.owner} • Topic: ${d.topic}</div>
+                          </div>
+                          <svg class="caret" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </div>`;
+      const toggle = () => {
+        expandedDocId = (expandedDocId === d.id) ? null : d.id;
+        renderDocList();
+      };
+      card.addEventListener('click', toggle);
+      card.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' '){ toggle(); }});
+      list.appendChild(card);
+
+      if (isExpanded){
+        const meta = document.createElement('div');
+        meta.className = 'doc-meta-inline';
+
+        const supports = (d.supportIds||[]).map(id => {
+          const sd = documents.find(x => x.id===id);
+          return sd ? `<span class="chip" data-docid="${sd.id}" title="Open ${sd.name}">${sd.name}</span>` : '';
+        }).join('');
+
+        const history = (d.history||[]).map(h => `<li><strong>${h.version}</strong> — ${h.date} — <span class="subtle">${h.note}</span></li>`).join('');
+
+        meta.innerHTML = `
+          <details open>
+            <summary><strong>Governance</strong></summary>
+            <div class="grid" style="margin-top:8px;">
+              <div class="field"><div class="label">Topic</div><div class="value">${d.topic}</div></div>
+              <div class="field"><div class="label">Owner</div><div class="value">${d.owner}</div></div>
+              <div class="field"><div class="label">Effective Date</div><div class="value">${d.effectiveDate}</div></div>
+              <div class="field"><div class="label">Next Approval Date</div><div class="value">${d.nextApprovalDate}</div></div>
+            </div>
+          </details>
+          <details style="margin-top:10px;" open>
+            <summary><strong>Supporting Documents</strong></summary>
+            <div class="chips" style="margin-top:8px;">${supports || '<span class="subtle">None</span>'}</div>
+          </details>
+          <details style="margin-top:10px;">
+            <summary><strong>Document History</strong></summary>
+            <ul style="margin:8px 0 0 16px; padding:0;">${history || '<li class="subtle">No history</li>'}</ul>
+          </details>
+          <details style="margin-top:10px;">
+            <summary><strong>Summary</strong></summary>
+            <div class="subtle" style="margin-top:8px;">${d.summary || '<em>No preview for this file type in demo.</em>'}</div>
+          </details>
+        `;
+        meta.querySelectorAll('.chip').forEach(ch => {
+          ch.addEventListener('click', () => {
+            const id = ch.getAttribute('data-docid');
+            expandedDocId = id;
+            renderDocList();
+          });
+        });
+        list.appendChild(meta);
+      }
     });
-}
-
-function showDetails(doc){
-  docMeta.innerHTML = `
-    <div class="pill">ID: ${doc.id}</div>
-    <div class="pill">${doc.tokens.length} tokens</div>
-    <div class="pill">${(doc.text||'').length} chars</div>
-    <h4 style="margin-top:10px">Summary</h4>
-    <div>${doc.summary || '<em>No preview for this file type in demo.</em>'}</div>
-    <h4 style="margin-top:10px">Governance</h4>
-    <div class="grid">
-      <div class="field"><div class="label">Document Owner</div><div class="value">${doc.owner}</div></div>
-      <div class="field"><div class="label">Document Approver</div><div class="value">${doc.approver}</div></div>
-      <div class="field"><div class="label">Effective Date</div><div class="value">${doc.effectiveDate}</div></div>
-      <div class="field"><div class="label">Next Refresh Date</div><div class="value">${doc.nextRefreshDate}</div></div>
-    </div>
-  `;
-}
-
-// ------------------------------ Mock pairs API (sentence-level) ------------------------------
-function computePairs(docA, docB, opts = {k:10, threshold:0.35}){
-  const allSent = [];
-  docA.sentences.forEach(s => allSent.push({tokens:s.tokens}));
-  docB.sentences.forEach(s => allSent.push({tokens:s.tokens}));
-  const idfMap = idf(allSent);
-  docA.sentences.forEach(s => s.vec = tfidfVec(s.tf, idfMap));
-  docB.sentences.forEach(s => s.vec = tfidfVec(s.tf, idfMap));
-
-  const pairs = [];
-  for(let i=0;i<docA.sentences.length;i++){
-    const sa = docA.sentences[i];
-    if(sa.tokens.length === 0) continue;
-    let bestB = null;
-    const local = [];
-    for(let j=0;j<docB.sentences.length;j++){
-      const sb = docB.sentences[j];
-      if(sb.tokens.length === 0) continue;
-      const sim = cosineSim(sa.vec, sb.vec);
-      if(sim >= opts.threshold){
-        local.push({i, j, sim});
-        if(!bestB || sim > bestB.sim) bestB = {j, sim};
-      }
-    }
-    local.sort((x,y)=>y.sim-x.sim);
-    for(const cand of local.slice(0, opts.k)){
-      const rb = bestMatchInA(docA, docB, cand.j);
-      if(rb && rb.i === cand.i){
-        pairs.push({i:cand.i, j:cand.j, score:cand.sim});
-      }
-    }
-  }
-
-  pairs.sort((a,b)=> a.i - b.i || a.j - b.j);
-  const merged = [];
-  let cur = null;
-  for(const p of pairs){
-    if(!cur){
-      cur = {i0:p.i, i1:p.i, j0:p.j, j1:p.j, score:p.score};
-    } else if (p.i <= cur.i1 + 1 && p.j <= cur.j1 + 1){
-      cur.i1 = Math.max(cur.i1, p.i);
-      cur.j1 = Math.max(cur.j1, p.j);
-      cur.score = Math.max(cur.score, p.score);
-    } else {
-      merged.push(cur); cur = {i0:p.i, i1:p.i, j0:p.j, j1:p.j, score:p.score};
-    }
-  }
-  if(cur) merged.push(cur);
-
-  const results = merged.map(m => {
-    const aText = sliceSentencesText(docA.sentences, m.i0, m.i1);
-    const bText = sliceSentencesText(docB.sentences, m.j0, m.j1);
-    const shared = topSharedTerms(docA.sentences, docB.sentences, m);
-    return {
-      score: m.score,
-      a: { doc_id: docA.id, name: docA.name, start_char: docA.sentences[m.i0]?.start ?? 0, end_char: docA.sentences[m.i1]?.end ?? 0, text: aText },
-      b: { doc_id: docB.id, name: docB.name, start_char: docB.sentences[m.j0]?.start ?? 0, end_char: docB.sentences[m.j1]?.end ?? 0, text: bText },
-      overlap: shared
-    };
-  });
-
-  results.sort((x,y)=> y.score - x.score);
-  return results.slice(0, 20);
-}
-
-function bestMatchInA(docA, docB, jIndex){
-  const sb = docB.sentences[jIndex];
-  if(!sb || sb.tokens.length === 0) return null;
-  let best = null;
-  for(let i=0;i<docA.sentences.length;i++){
-    const sa = docA.sentences[i];
-    if(sa.tokens.length === 0) continue;
-    const sim = cosineSim(sa.vec, sb.vec);
-    if(!best || sim > best.sim) best = {i, sim};
-  }
-  return best;
-}
-
-function sliceSentencesText(arr, i0, i1){
-  return arr.slice(i0, i1+1).map(s => s.text).join(" ");
-}
-
-function topSharedTerms(aSents, bSents, span){
-  const aTok = new Map();
-  for(let i=span.i0;i<=span.i1;i++){
-    for(const t of aSents[i].tokens){
-      aTok.set(t, (aTok.get(t)||0) + 1);
-    }
-  }
-  const bTok = new Map();
-  for(let j=span.j0;j<=span.j1;j++){
-    for(const t of bSents[j].tokens){
-      bTok.set(t, (bTok.get(t)||0) + 1);
-    }
-  }
-  const common = [];
-  for(const [t, c] of aTok){
-    if(bTok.has(t)) common.push([t, c + bTok.get(t)]);
-  }
-  common.sort((x,y)=> y[1]-x[1]);
-  return { shared_terms: common.slice(0,12).map(x=>x[0]) };
 }
 
 // ------------------------------ Graph (D3) ------------------------------
@@ -716,7 +832,11 @@ function drawGraph(){
     linkSel.classed("active", false);
   }).on("click", (event, d)=> {
     const doc = documents.find(x => x.id===d.id);
-    if(doc) showDetails(doc);
+    if(doc){ 
+      expandedDocId = (expandedDocId === doc.id ? null : doc.id); 
+      // do NOT switch views; only reveal/refresh metadata panel
+      renderDocList();
+    }
   });
   nodeSel = nodeEnter.merge(nodeSel);
   updateNodeLabels(nodeSel);
@@ -733,9 +853,7 @@ function drawGraph(){
   sim.alpha(0.8).restart();
 }
 
-function nodeById(id){
-  return sim.nodes().find(n => n.id === (id.id || id));
-}
+function nodeById(id){ return sim.nodes().find(n => n.id === (id.id || id)); }
 function idToName(id){
   const doc = documents.find(d => d.id === (id.id || id));
   return doc ? doc.name : id;
@@ -775,7 +893,7 @@ function showWhyForEdge(edge){
   if(!a || !b) return;
 
   const pairs = computePairs(a, b, {k:10, threshold:0.3});
-  whyHeader.textContent = `${a.name} ↔ ${b.name} • ${pairs.length} passage matches • doc sim ${edge.value.toFixed(3)}`;
+  document.getElementById('whyHeader').textContent = `${a.name} ↔ ${b.name} • doc sim ${edge.value.toFixed(3)}`;
 
   whyContent.innerHTML = '';
   pairs.forEach((p, idx) => {
@@ -793,32 +911,11 @@ function showWhyForEdge(edge){
         <div class="pair-text">${aHtml}</div>
         <div class="pair-text">${bHtml}</div>
       </div>
-      <div class="pair-meta">
-        <div>A: chars ${p.a.start_char}–${p.a.end_char}</div>
-        <div>B: chars ${p.b.start_char}–${p.b.end_char}</div>
-      </div>
-      <div class="pair-actions">
-        <button class="btn ghost open-viewer">Open passage viewer</button>
-      </div>
     `;
-    card.querySelector('.open-viewer').addEventListener('click', () => openViewer(p, a, b));
     whyContent.appendChild(card);
   });
 
   document.getElementById('whyPanel').style.display = 'block';
-}
-
-// Modal viewer
-const viewer = document.getElementById('viewerModal');
-document.getElementById('viewerClose').addEventListener('click', ()=> viewer.style.display='none');
-function openViewer(pair, a, b){
-  document.getElementById('viewerTitle').textContent = `${a.name} ↔ ${b.name} — score ${pair.score.toFixed(3)}`;
-  document.getElementById('leftTitle').textContent = a.name;
-  document.getElementById('rightTitle').textContent = b.name;
-  const shared = pair.overlap.shared_terms || [];
-  document.getElementById('leftExcerpt').innerHTML = highlightTerms(pair.a.text, shared);
-  document.getElementById('rightExcerpt').innerHTML = highlightTerms(pair.b.text, shared);
-  viewer.style.display = 'flex';
 }
 
 // Drag helpers
@@ -847,9 +944,9 @@ function drag(simulation){
     {name:"Epsilon.txt", text:"Epsilon memo summarizing lessons learned from incidents, near misses, fraud attempts, and conduct breaches. Recommendations include stronger encryption, faster vendor incident reporting, and clearer escalation thresholds."}
   ];
   for(const f of examples){ addDocument(f.name, f.text); }
-  renderDocList();
   recomputeLinks();
   drawGraph();
+  renderDocList();
 })();
 
 // Resize handling
