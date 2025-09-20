@@ -170,7 +170,12 @@
   .node:hover circle{ r:24; filter:drop-shadow(0 6px 12px rgba(2,8,20,.28)); }
 
   .node text{ font-size:13px; font-weight:600; fill:#fff; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
-
+  .node-label-bg{
+    fill:rgba(15,23,42,.7);
+    stroke:rgba(255,255,255,.35);
+    stroke-width:.6px;
+    pointer-events:none;
+  }
   .legend{
     position:absolute; left:12px; bottom:10px;
     background:rgba(255,255,255,.85);
@@ -703,7 +708,8 @@ function drawGraph(){
   nodeSel.exit().remove();
   const nodeEnter = nodeSel.enter().append("g").attr("class","node").call(drag(sim));
   nodeEnter.append("circle").attr("r",22);
-  nodeEnter.append("text").text(d=> abbrev(d.title));
+  nodeEnter.append("text");
+  nodeEnter.insert("rect", "text").attr("class", "node-label-bg");
   nodeEnter.on("mouseenter", function(event, d){
     linkSel.classed("active", l => l.source.id===d.id || l.target.id===d.id);
   }).on("mouseleave", function(){
@@ -713,6 +719,7 @@ function drawGraph(){
     if(doc) showDetails(doc);
   });
   nodeSel = nodeEnter.merge(nodeSel);
+  updateNodeLabels(nodeSel);
 
   sim.nodes(nodes).on("tick", ()=>{
     linkSel
@@ -738,6 +745,27 @@ function abbrev(name){
   const parts = name.split('.');
   const base = parts[0];
   return base.length > 10 ? base.slice(0,10) + '…' : base;
+}
+
+const LABEL_PAD_X = 8;
+const LABEL_PAD_Y = 4;
+const LABEL_CORNER = 8;
+
+function updateNodeLabels(selection){
+  selection.each(function(d){
+    const group = d3.select(this);
+    const textSel = group.select("text").text(abbrev(d.title));
+    const textNode = textSel.node();
+    if(!textNode) return;
+    const bbox = textNode.getBBox();
+    group.select("rect.node-label-bg")
+      .attr("x", bbox.x - LABEL_PAD_X)
+      .attr("y", bbox.y - LABEL_PAD_Y)
+      .attr("width", bbox.width + LABEL_PAD_X * 2)
+      .attr("height", bbox.height + LABEL_PAD_Y * 2)
+      .attr("rx", LABEL_CORNER)
+      .attr("ry", LABEL_CORNER);
+  });
 }
 
 // ------------------------------ Why panel rendering ------------------------------
