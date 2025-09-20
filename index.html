@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Document Network — Why Pane + Governance Meta</title>
+
+<!-- D3.js -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!-- Google Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg-grad-1:#f8fafc;
+    --bg-grad-2:#eef2f7;
+    --card-bg:#ffffff;
+    --link:#64748b;
+    --link-active:#0ea5e9;
+    --node-grad-a:#0ea5e9;
+    --node-grad-b:#6366f1;
+    --text:#0f172a;
+    --muted:#475569;
+    --accent:#0ea5e9;
+  }
+
+  html, body { height:100%; }
+
+  body {
+    margin:0;
+    font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    color:var(--text);
+    background:linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2));
+  }
+
+  .layout {
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "header header"
+      "sidebar main";
+    height:100vh;
+    gap:14px;
+    padding:16px;
+    box-sizing:border-box;
+  }
+
+  .header {
+    grid-area:header;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+
+  .brand { font-weight:700; font-size:18px; letter-spacing:.2px; }
+  .controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  .search {
+    display:flex; align-items:center; gap:8px;
+    background:#fff; border:1px solid rgba(15,23,42,.08);
+    border-radius:10px; padding:8px 10px;
+    box-shadow:0 2px 8px rgba(2,8,20,.06);
+  }
+  .search input{
+    border:none; outline:none; font-size:13px; width:220px;
+  }
+
+  .range {
+    background:#fff; border:1px solid rgba(15,23,42,.08);
+    border-radius:10px; padding:6px 10px;
+    display:flex; align-items:center; gap:8px; font-size:12px;
+    box-shadow:0 2px 8px rgba(2,8,20,.06);
+  }
+  .range input[type=range]{ width:160px; }
+
+  .btn {
+    background:var(--accent); color:#fff; border:none; border-radius:10px;
+    padding:10px 12px; font-weight:600; cursor:pointer;
+    box-shadow:0 6px 16px rgba(14,165,233,.35);
+  }
+  .btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+  .sidebar {
+    grid-area:sidebar;
+    background:var(--card-bg);
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(2,8,20,.06), 0 2px 8px rgba(2,8,20,.06);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .side-head {
+    padding:12px 14px; border-bottom:1px solid rgba(15,23,42,.06);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .side-title { font-weight:600; }
+
+  .drop {
+    margin:12px; padding:16px; border:1.5px dashed rgba(15,23,42,.15);
+    border-radius:12px; background:rgba(255,255,255,.6);
+    text-align:center; font-size:13px; color:var(--muted);
+  }
+  .drop.dragover { border-color:var(--accent); background:rgba(14,165,233,.08); color:#0ea5e9; }
+
+  .docs { overflow:auto; padding:6px 6px 10px 6px; }
+  .doc {
+    border:1px solid rgba(15,23,42,.08); background:#fff; border-radius:10px;
+    padding:10px; margin:8px; cursor:pointer;
+  }
+  .doc:hover{ border-color:rgba(14,165,233,.5); box-shadow:0 2px 10px rgba(14,165,233,.12); }
+  .doc .name { font-weight:600; font-size:13px; }
+  .doc .meta { color:var(--muted); font-size:12px; margin-top:4px; }
+
+  .details {
+    border-top:1px solid rgba(15,23,42,.06);
+    padding:12px 14px; font-size:13px; min-height:150px;
+  }
+  .details h4 { margin:0 0 8px 0; font-size:13px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; margin-right:6px; border:1px solid rgba(15,23,42,.12); background:#fff; }
+
+  .grid {
+    display:grid; grid-template-columns: 1fr 1fr; gap:8px 12px; margin-top:8px;
+  }
+  .field {
+    background:#f8fafc; border:1px solid rgba(15,23,42,.08);
+    border-radius:8px; padding:8px;
+  }
+  .field .label { font-size:11px; color:#64748b; }
+  .field .value { font-weight:600; margin-top:2px; }
+
+  .main {
+    grid-area:main;
+    position:relative;
+    background:var(--card-bg);
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(2,8,20,.06), 0 2px 8px rgba(2,8,20,.06);
+    overflow:hidden;
+    min-height:320px;
+  }
+
+  .tooltip{
+    position:absolute;
+    pointer-events:none;
+    padding:10px 12px;
+    background:#fff;
+    color:#111827;
+    border-radius:10px;
+    font-size:13px;
+    line-height:1.45;
+    box-shadow:0 8px 24px rgba(15,23,42,.14);
+    opacity:0;
+    transform:translateY(-2px);
+    transition:opacity .16s ease, transform .16s ease;
+    max-width:240px;
+    border:1px solid rgba(15,23,42,.06);
+    white-space:pre-wrap;
+  }
+  .tooltip.show{ opacity:1; transform:translateY(0); }
+
+  .link{ stroke:var(--link); opacity:.45; transition:opacity .2s, stroke .2s, stroke-width .2s; }
+  .link.active{ stroke:var(--link-active); opacity:.95; }
+
+  .node circle{
+    fill:url(#nodeGradient);
+    stroke:#fff; stroke-width:2px;
+    filter:drop-shadow(0 2px 5px rgba(2,8,20,.2));
+    transition:r .2s ease, filter .2s ease;
+  }
+  .node:hover circle{ r:24; filter:drop-shadow(0 6px 12px rgba(2,8,20,.28)); }
+
+  .node text{ font-size:13px; font-weight:600; fill:#fff; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+
+  .legend{
+    position:absolute; left:12px; bottom:10px;
+    background:rgba(255,255,255,.85);
+    border:1px solid rgba(15,23,42,.08);
+    backdrop-filter:saturate(140%) blur(6px);
+    padding:6px 10px; border-radius:8px; font-size:12px; color:#0f172a;
+  }
+  .hint{
+    position:absolute; right:12px; bottom:10px;
+    font-size:12px; color:var(--muted);
+    background:rgba(255,255,255,.85); border:1px solid rgba(15,23,42,.08);
+    padding:6px 10px; border-radius:8px;
+  }
+
+  /* Why panel */
+  .why-panel {
+    position:absolute; top:12px; right:12px; width:420px;
+    background:#fff; border:1px solid rgba(15,23,42,.08); border-radius:12px;
+    box-shadow:0 10px 30px rgba(2,8,20,.1);
+    padding:12px; font-size:13px; display:none;
+    max-height:80vh; overflow:auto;
+  }
+  .why-panel h4{ margin:4px 0 8px 0; font-size:14px; }
+  .why-panel .close{ float:right; cursor:pointer; color:#64748b; }
+  .match-card{
+    border:1px solid rgba(15,23,42,.08);
+    border-radius:10px; padding:10px; margin:8px 0; background:#fff;
+  }
+  .pair-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .pair-head .score{ font-weight:600; }
+  .pair-texts{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:8px; }
+  .pair-text{ font-size:12px; line-height:1.45; background:#f8fafc; border:1px solid rgba(15,23,42,.06); border-radius:8px; padding:8px; max-height:140px; overflow:auto; }
+  .pair-meta{ margin-top:6px; color:#475569; font-size:11px; display:flex; gap:8px; flex-wrap:wrap; }
+  .pair-actions{ margin-top:8px; display:flex; gap:8px; }
+  .ghost{ background:#f1f5f9; color:#0f172a; border:1px solid rgba(15,23,42,.12); }
+  mark{ background:#fde68a; padding:0 2px; border-radius:3px; }
+
+  /* Modal viewer */
+  .modal {
+    position:fixed; inset:0; background:rgba(2,8,20,.55);
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .modal .inner{
+    width:min(1100px, 96vw); max-height:90vh; background:#fff; border-radius:14px;
+    box-shadow:0 20px 60px rgba(2,8,20,.4); overflow:hidden; display:flex; flex-direction:column;
+  }
+  .modal .bar{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 14px;
+    border-bottom:1px solid rgba(15,23,42,.08);
+  }
+  .modal .content{
+    display:grid; grid-template-columns: 1fr 1fr; gap:0; flex:1; overflow:auto;
+  }
+  .side{
+    padding:14px; border-right:1px solid rgba(15,23,42,.06);
+  }
+  .side:last-child{ border-right:none; }
+  .side h5{ margin:0 0 6px 0; font-size:13px; }
+  .excerpt{
+    background:#f8fafc; border:1px solid rgba(15,23,42,.08);
+    border-radius:10px; padding:10px; font-size:13px; line-height:1.55; white-space:pre-wrap;
+  }
+</style>
+</head>
+
+<body>
+  <div class="layout">
+    <div class="header">
+      <div class="brand">Document Network</div>
+      <div class="controls">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="searchInput" placeholder="Search documents..." />
+        </div>
+        <div class="range">
+          <span>Link threshold</span>
+          <input type="range" id="threshold" min="0" max="100" value="30" />
+          <span id="thLabel">0.30</span>
+        </div>
+        <button class="btn" id="fileBtn">Add documents</button>
+        <input type="file" id="fileInput" multiple style="display:none" accept=".txt,.md,.pdf,.docx,.html,.csv"/>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="side-head">
+        <div class="side-title">Documents</div>
+        <div class="subtle" id="docCount">0 items</div>
+      </div>
+      <div class="drop" id="dropZone">
+        Drop files here (.txt/.md recommended for demo).<br/>Or click “Add documents”.
+      </div>
+      <div class="docs" id="docList"></div>
+      <div class="details" id="docDetails">
+        <h4>Details</h4>
+        <div id="docMeta" class="subtle">Select a document to see summary and metadata.</div>
+      </div>
+    </aside>
+
+    <!-- Main graph -->
+    <main class="main" id="graph"></main>
+  </div>
+
+<!-- Why panel -->
+<div class="why-panel" id="whyPanel">
+  <span class="close" id="whyClose">✕</span>
+  <h4>Why these documents link?</h4>
+  <div id="whyHeader" class="subtle" style="margin-bottom:8px;"></div>
+  <div id="whyContent"></div>
+</div>
+
+<!-- Modal viewer -->
+<div class="modal" id="viewerModal" role="dialog" aria-modal="true">
+  <div class="inner">
+    <div class="bar">
+      <div id="viewerTitle" style="font-weight:600;">Passage viewer</div>
+      <button class="btn ghost" id="viewerClose">Close</button>
+    </div>
+    <div class="content">
+      <div class="side">
+        <h5 id="leftTitle">A</h5>
+        <div class="excerpt" id="leftExcerpt"></div>
+      </div>
+      <div class="side">
+        <h5 id="rightTitle">B</h5>
+        <div class="excerpt" id="rightExcerpt"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ------------------------------ Helpers: tokenization & TF-IDF ------------------------------
+const stopwords = new Set("a,an,and,are,as,at,be,by,for,from,has,he,in,is,it,its,of,on,that,the,to,was,were,will,with,or,not,if,then,into,over,under,between,than,about,after,before,again,once,only,other,own,same,so,too,very,can,just,should,now".split(","));
+
+function tokenize(text){
+  return (text||"")
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u201C\u201D]/g, "'")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(t => t && !stopwords.has(t) && t.length > 1);
+}
+function tf(tokens){
+  const map = new Map();
+  tokens.forEach(t => map.set(t, (map.get(t)||0)+1));
+  const N = tokens.length || 1;
+  for(const [k,v] of map) map.set(k, v/N);
+  return map;
+}
+function idf(allDocs){
+  const df = new Map(); const N = allDocs.length || 1;
+  for(const doc of allDocs){
+    const unique = new Set(doc.tokens);
+    unique.forEach(t => df.set(t, (df.get(t)||0)+1));
+  }
+  const idfMap = new Map();
+  for(const [t, dfi] of df) idfMap.set(t, Math.log((N+1)/(dfi+1)) + 1);
+  return idfMap;
+}
+function tfidfVec(tfMap, idfMap){
+  const vec = new Map();
+  for(const [t, w] of tfMap){
+    if(idfMap.has(t)) vec.set(t, w * idfMap.get(t));
+  }
+  return vec;
+}
+function cosineSim(vecA, vecB){
+  let dot=0, normA=0, normB=0;
+  for(const [t, w] of vecA){
+    if(vecB.has(t)) dot += w * vecB.get(t);
+    normA += w*w;
+  }
+  for(const [, w] of vecB){ normB += w*w; }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom ? dot/denom : 0;
+}
+
+// sentence split keeping indices
+function splitSentences(text){
+  const out = [];
+  let start = 0;
+  const re = /([^.!?]+[.!?])|([^\n]+(\n|$))/g;
+  let m;
+  while ((m = re.exec(text)) !== null){
+    const s = m[0].trim();
+    if(s.length < 3) continue;
+    const idx = text.indexOf(s, start);
+    const end = idx + s.length;
+    out.push({ text: s, start: idx, end: end });
+    start = end;
+  }
+  if(out.length === 0 && text) out.push({ text, start:0, end:text.length });
+  return out;
+}
+
+// highlight terms in text
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function highlightTerms(text, terms){
+  let esc = escapeHtml(text);
+  const uniq = Array.from(new Set(terms)).sort((a,b)=>b.length - a.length);
+  for(const t of uniq){
+    if(!t || t.length < 2) continue;
+    const re = new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    esc = esc.replace(re, m => `<mark>${m}</mark>`);
+  }
+  return esc;
+}
+
+// Governance placeholders
+const OWNER_NAMES = ["Alex Morgan","Priya Nair","Liam O'Connor","Sofia Rossi","Chen Wei","Amira Haddad","Jonas Müller","Isabella García"];
+const APPROVER_NAMES = ["Maya Patel","Tom Andersen","Noah Brown","Olivia Martin","Hiro Tanaka","Grace Lee","Samuel Kim","Ava Thompson"];
+
+function pick(arr, seed){
+  return arr[seed % arr.length];
+}
+function formatDate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function fakeGovernance(seed){
+  // effective date within last 18 months; next refresh 12 months after effective
+  const now = new Date();
+  const monthsBack = (seed % 18) + 1;
+  const eff = new Date(now);
+  eff.setMonth(eff.getMonth() - monthsBack);
+  const next = new Date(eff);
+  next.setMonth(next.getMonth() + 12);
+  return {
+    owner: pick(OWNER_NAMES, seed),
+    approver: pick(APPROVER_NAMES, seed+3),
+    effectiveDate: formatDate(eff),
+    nextRefreshDate: formatDate(next)
+  };
+}
+
+// ------------------------------ App state ------------------------------
+let documents = []; // {id, name, text, tokens, tf, vec, summary, sentences:[], owner, approver, effectiveDate, nextRefreshDate}
+let links = [];     // {source, target, value}
+let idCounter = 1;
+
+// ------------------------------ UI elements ------------------------------
+const fileBtn = document.getElementById('fileBtn');
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const docList = document.getElementById('docList');
+const docCount = document.getElementById('docCount');
+const docDetails = document.getElementById('docDetails');
+const docMeta = document.getElementById('docMeta');
+const searchInput = document.getElementById('searchInput');
+const thresholdEl = document.getElementById('threshold');
+const thLabel = document.getElementById('thLabel');
+const whyPanel = document.getElementById('whyPanel');
+const whyClose = document.getElementById('whyClose');
+const whyHeader = document.getElementById('whyHeader');
+const whyContent = document.getElementById('whyContent');
+
+whyClose.addEventListener('click', ()=> whyPanel.style.display='none');
+
+fileBtn.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', (e)=> handleFiles(e.target.files));
+
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, (e)=>{
+  e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, (e)=>{
+  e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover');
+}));
+dropZone.addEventListener('drop', (e)=> handleFiles(e.dataTransfer.files));
+
+searchInput.addEventListener('input', renderDocList);
+thresholdEl.addEventListener('input', () => { 
+  thLabel.textContent = (thresholdEl.value/100).toFixed(2); 
+  recomputeLinks(); drawGraph(); 
+});
+
+// ------------------------------ File handling ------------------------------
+async function handleFiles(fileList){
+  const files = Array.from(fileList||[]);
+  for (const file of files){
+    const ext = (file.name.split('.').pop()||'').toLowerCase();
+    let text = '';
+    if (ext === 'txt' || ext === 'md' || ext === 'csv' || ext === 'html'){
+      text = await file.text();
+    } else if (ext === 'pdf' || ext === 'docx'){
+      text = ''; // placeholder for demo
+    } else {
+      continue;
+    }
+    addDocument(file.name, text);
+  }
+  renderDocList();
+  recomputeLinks();
+  drawGraph();
+}
+
+function addDocument(name, text){
+  const tokens = tokenize(text);
+  const tfMap = tf(tokens);
+  const summary = (text||'').split(/\s+/).slice(0,40).join(' ');
+  const sentences = splitSentences(text).map(s => {
+    const toks = tokenize(s.text);
+    return { ...s, tokens: toks, tf: tf(toks), vec: null };
+  });
+  const meta = fakeGovernance(idCounter);
+  const doc = { 
+    id: 'doc' + (idCounter++), name, text, tokens, tf: tfMap, vec:null, summary, sentences,
+    owner: meta.owner, approver: meta.approver, effectiveDate: meta.effectiveDate, nextRefreshDate: meta.nextRefreshDate
+  };
+  documents.push(doc);
+  docCount.textContent = documents.length + ' items';
+}
+
+// ------------------------------ Similarity & links ------------------------------
+function recomputeLinks(){
+  const idfMap = idf(documents.map(d => ({tokens: d.tokens})));
+  documents.forEach(d => d.vec = tfidfVec(d.tf, idfMap));
+
+  const threshold = thresholdEl.value/100;
+  const out = [];
+  for(let i=0;i<documents.length;i++){
+    for(let j=i+1;j<documents.length;j++){
+      const a = documents[i], b = documents[j];
+      const sim = cosineSim(a.vec, b.vec);
+      if (sim >= threshold) out.push({ source: a.id, target: b.id, value: sim });
+    }
+  }
+  links = out;
+}
+
+// ------------------------------ Sidebar rendering ------------------------------
+function renderDocList(){
+  const q = (searchInput.value||'').toLowerCase();
+  docList.innerHTML = '';
+  documents
+    .filter(d => d.name.toLowerCase().includes(q) || (d.text||'').toLowerCase().includes(q))
+    .forEach(d => {
+      const div = document.createElement('div');
+      div.className = 'doc';
+      div.innerHTML = `<div class="name">${d.name}</div>
+                       <div class="meta">${d.tokens.length} tokens • Owner: ${d.owner}</div>`;
+      div.addEventListener('click', ()=> showDetails(d));
+      docList.appendChild(div);
+    });
+}
+
+function showDetails(doc){
+  docMeta.innerHTML = `
+    <div class="pill">ID: ${doc.id}</div>
+    <div class="pill">${doc.tokens.length} tokens</div>
+    <div class="pill">${(doc.text||'').length} chars</div>
+    <h4 style="margin-top:10px">Summary</h4>
+    <div>${doc.summary || '<em>No preview for this file type in demo.</em>'}</div>
+    <h4 style="margin-top:10px">Governance</h4>
+    <div class="grid">
+      <div class="field"><div class="label">Document Owner</div><div class="value">${doc.owner}</div></div>
+      <div class="field"><div class="label">Document Approver</div><div class="value">${doc.approver}</div></div>
+      <div class="field"><div class="label">Effective Date</div><div class="value">${doc.effectiveDate}</div></div>
+      <div class="field"><div class="label">Next Refresh Date</div><div class="value">${doc.nextRefreshDate}</div></div>
+    </div>
+  `;
+}
+
+// ------------------------------ Mock pairs API (sentence-level) ------------------------------
+function computePairs(docA, docB, opts = {k:10, threshold:0.35}){
+  const allSent = [];
+  docA.sentences.forEach(s => allSent.push({tokens:s.tokens}));
+  docB.sentences.forEach(s => allSent.push({tokens:s.tokens}));
+  const idfMap = idf(allSent);
+  docA.sentences.forEach(s => s.vec = tfidfVec(s.tf, idfMap));
+  docB.sentences.forEach(s => s.vec = tfidfVec(s.tf, idfMap));
+
+  const pairs = [];
+  for(let i=0;i<docA.sentences.length;i++){
+    const sa = docA.sentences[i];
+    if(sa.tokens.length === 0) continue;
+    let bestB = null;
+    const local = [];
+    for(let j=0;j<docB.sentences.length;j++){
+      const sb = docB.sentences[j];
+      if(sb.tokens.length === 0) continue;
+      const sim = cosineSim(sa.vec, sb.vec);
+      if(sim >= opts.threshold){
+        local.push({i, j, sim});
+        if(!bestB || sim > bestB.sim) bestB = {j, sim};
+      }
+    }
+    local.sort((x,y)=>y.sim-x.sim);
+    for(const cand of local.slice(0, opts.k)){
+      const rb = bestMatchInA(docA, docB, cand.j);
+      if(rb && rb.i === cand.i){
+        pairs.push({i:cand.i, j:cand.j, score:cand.sim});
+      }
+    }
+  }
+
+  pairs.sort((a,b)=> a.i - b.i || a.j - b.j);
+  const merged = [];
+  let cur = null;
+  for(const p of pairs){
+    if(!cur){
+      cur = {i0:p.i, i1:p.i, j0:p.j, j1:p.j, score:p.score};
+    } else if (p.i <= cur.i1 + 1 && p.j <= cur.j1 + 1){
+      cur.i1 = Math.max(cur.i1, p.i);
+      cur.j1 = Math.max(cur.j1, p.j);
+      cur.score = Math.max(cur.score, p.score);
+    } else {
+      merged.push(cur); cur = {i0:p.i, i1:p.i, j0:p.j, j1:p.j, score:p.score};
+    }
+  }
+  if(cur) merged.push(cur);
+
+  const results = merged.map(m => {
+    const aText = sliceSentencesText(docA.sentences, m.i0, m.i1);
+    const bText = sliceSentencesText(docB.sentences, m.j0, m.j1);
+    const shared = topSharedTerms(docA.sentences, docB.sentences, m);
+    return {
+      score: m.score,
+      a: { doc_id: docA.id, name: docA.name, start_char: docA.sentences[m.i0]?.start ?? 0, end_char: docA.sentences[m.i1]?.end ?? 0, text: aText },
+      b: { doc_id: docB.id, name: docB.name, start_char: docB.sentences[m.j0]?.start ?? 0, end_char: docB.sentences[m.j1]?.end ?? 0, text: bText },
+      overlap: shared
+    };
+  });
+
+  results.sort((x,y)=> y.score - x.score);
+  return results.slice(0, 20);
+}
+
+function bestMatchInA(docA, docB, jIndex){
+  const sb = docB.sentences[jIndex];
+  if(!sb || sb.tokens.length === 0) return null;
+  let best = null;
+  for(let i=0;i<docA.sentences.length;i++){
+    const sa = docA.sentences[i];
+    if(sa.tokens.length === 0) continue;
+    const sim = cosineSim(sa.vec, sb.vec);
+    if(!best || sim > best.sim) best = {i, sim};
+  }
+  return best;
+}
+
+function sliceSentencesText(arr, i0, i1){
+  return arr.slice(i0, i1+1).map(s => s.text).join(" ");
+}
+
+function topSharedTerms(aSents, bSents, span){
+  const aTok = new Map();
+  for(let i=span.i0;i<=span.i1;i++){
+    for(const t of aSents[i].tokens){
+      aTok.set(t, (aTok.get(t)||0) + 1);
+    }
+  }
+  const bTok = new Map();
+  for(let j=span.j0;j<=span.j1;j++){
+    for(const t of bSents[j].tokens){
+      bTok.set(t, (bTok.get(t)||0) + 1);
+    }
+  }
+  const common = [];
+  for(const [t, c] of aTok){
+    if(bTok.has(t)) common.push([t, c + bTok.get(t)]);
+  }
+  common.sort((x,y)=> y[1]-x[1]);
+  return { shared_terms: common.slice(0,12).map(x=>x[0]) };
+}
+
+// ------------------------------ Graph (D3) ------------------------------
+const container = d3.select("#graph");
+const width  = container.node().clientWidth;
+const height = container.node().clientHeight;
+
+const svg = container.append("svg");
+const g = svg.append("g");
+
+const defs = svg.append("defs");
+const grad = defs.append("linearGradient")
+  .attr("id","nodeGradient").attr("x1","0%").attr("y1","0%").attr("x2","100%").attr("y2","100%");
+grad.append("stop").attr("offset","0%").attr("stop-color","var(--node-grad-a)");
+grad.append("stop").attr("offset","100%").attr("stop-color","var(--node-grad-b)");
+
+container.append("div").attr("class","legend").text("Edge width ∝ cosine similarity");
+container.append("div").attr("class","hint").text("Scroll to zoom • Drag to pan • Click link for Why");
+const tooltip = container.append("div").attr("class","tooltip");
+
+let sim = d3.forceSimulation([])
+  .force("link", d3.forceLink([]).id(d=>d.id).distance(120))
+  .force("charge", d3.forceManyBody().strength(-360))
+  .force("center", d3.forceCenter(width/2, height/2))
+  .force("collision", d3.forceCollide().radius(34));
+
+let linkSel = g.append("g").attr("class","links").selectAll("line");
+let nodeSel = g.append("g").attr("class","nodes").selectAll("g");
+
+const zoom = d3.zoom().scaleExtent([0.5, 2.5]).on("zoom", (event)=> g.attr("transform", event.transform));
+svg.call(zoom);
+svg.on("dblclick.zoom", null);
+svg.on("dblclick", () => svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity));
+svg.attr("viewBox", [0,0,width,height]);
+
+function drawGraph(){
+  const nodes = documents.map(d => ({ id:d.id, title:d.name }));
+  const maxVal = links.length ? d3.max(links, d=>d.value) : 1;
+  const strokeScale = d3.scaleLinear().domain([0, maxVal]).range([1.2, 6]);
+
+  linkSel = linkSel.data(links, d => d.source + '-' + d.target);
+  linkSel.exit().remove();
+  const linkEnter = linkSel.enter().append("line")
+    .attr("class","link")
+    .attr("stroke-width", d=>strokeScale(d.value))
+    .attr("stroke-linecap","round")
+    .on("click", (event,d)=> showWhyForEdge(d))
+    .on("mouseenter", function(event,d){
+      d3.select(this).classed("active", true);
+      const [mx,my] = d3.pointer(event, container.node());
+      tooltip.style("left", mx+14+"px").style("top", my+14+"px")
+        .html(`<strong>${idToName(d.source)} ↔ ${idToName(d.target)}</strong><br/>Similarity: ${d.value.toFixed(3)}`)
+        .classed("show", true);
+    })
+    .on("mouseleave", function(){
+      d3.select(this).classed("active", false);
+      tooltip.classed("show", false);
+    });
+  linkSel = linkEnter.merge(linkSel)
+    .attr("stroke-width", d=>strokeScale(d.value));
+
+  nodeSel = nodeSel.data(nodes, d => d.id);
+  nodeSel.exit().remove();
+  const nodeEnter = nodeSel.enter().append("g").attr("class","node").call(drag(sim));
+  nodeEnter.append("circle").attr("r",22);
+  nodeEnter.append("text").text(d=> abbrev(d.title));
+  nodeEnter.on("mouseenter", function(event, d){
+    linkSel.classed("active", l => l.source.id===d.id || l.target.id===d.id);
+  }).on("mouseleave", function(){
+    linkSel.classed("active", false);
+  }).on("click", (event, d)=> {
+    const doc = documents.find(x => x.id===d.id);
+    if(doc) showDetails(doc);
+  });
+  nodeSel = nodeEnter.merge(nodeSel);
+
+  sim.nodes(nodes).on("tick", ()=>{
+    linkSel
+      .attr("x1", d=> nodeById(d.source).x)
+      .attr("y1", d=> nodeById(d.source).y)
+      .attr("x2", d=> nodeById(d.target).x)
+      .attr("y2", d=> nodeById(d.target).y);
+    nodeSel.attr("transform", d=>`translate(${d.x},${d.y})`);
+  });
+  sim.force("link").links(links);
+  sim.alpha(0.8).restart();
+}
+
+function nodeById(id){
+  return sim.nodes().find(n => n.id === (id.id || id));
+}
+function idToName(id){
+  const doc = documents.find(d => d.id === (id.id || id));
+  return doc ? doc.name : id;
+}
+function abbrev(name){
+  if(name.length <= 12) return name;
+  const parts = name.split('.');
+  const base = parts[0];
+  return base.length > 10 ? base.slice(0,10) + '…' : base;
+}
+
+// ------------------------------ Why panel rendering ------------------------------
+function showWhyForEdge(edge){
+  const a = documents.find(d => d.id === (edge.source.id || edge.source));
+  const b = documents.find(d => d.id === (edge.target.id || edge.target));
+  if(!a || !b) return;
+
+  const pairs = computePairs(a, b, {k:10, threshold:0.3});
+  whyHeader.textContent = `${a.name} ↔ ${b.name} • ${pairs.length} passage matches • doc sim ${edge.value.toFixed(3)}`;
+
+  whyContent.innerHTML = '';
+  pairs.forEach((p, idx) => {
+    const shared = p.overlap.shared_terms || [];
+    const aHtml = highlightTerms(p.a.text, shared);
+    const bHtml = highlightTerms(p.b.text, shared);
+    const card = document.createElement('div');
+    card.className = 'match-card';
+    card.innerHTML = `
+      <div class="pair-head">
+        <div class="score">Match #${idx+1} • score ${p.score.toFixed(3)}</div>
+        <div class="subtle">${shared.slice(0,6).join(', ')}</div>
+      </div>
+      <div class="pair-texts">
+        <div class="pair-text">${aHtml}</div>
+        <div class="pair-text">${bHtml}</div>
+      </div>
+      <div class="pair-meta">
+        <div>A: chars ${p.a.start_char}–${p.a.end_char}</div>
+        <div>B: chars ${p.b.start_char}–${p.b.end_char}</div>
+      </div>
+      <div class="pair-actions">
+        <button class="btn ghost open-viewer">Open passage viewer</button>
+      </div>
+    `;
+    card.querySelector('.open-viewer').addEventListener('click', () => openViewer(p, a, b));
+    whyContent.appendChild(card);
+  });
+
+  document.getElementById('whyPanel').style.display = 'block';
+}
+
+// Modal viewer
+const viewer = document.getElementById('viewerModal');
+document.getElementById('viewerClose').addEventListener('click', ()=> viewer.style.display='none');
+function openViewer(pair, a, b){
+  document.getElementById('viewerTitle').textContent = `${a.name} ↔ ${b.name} — score ${pair.score.toFixed(3)}`;
+  document.getElementById('leftTitle').textContent = a.name;
+  document.getElementById('rightTitle').textContent = b.name;
+  const shared = pair.overlap.shared_terms || [];
+  document.getElementById('leftExcerpt').innerHTML = highlightTerms(pair.a.text, shared);
+  document.getElementById('rightExcerpt').innerHTML = highlightTerms(pair.b.text, shared);
+  viewer.style.display = 'flex';
+}
+
+// Drag helpers
+function drag(simulation){
+  return d3.drag()
+    .on("start", (event,d)=>{
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x; d.fy = d.y;
+    })
+    .on("drag", (event,d)=>{
+      d.fx = event.x; d.fy = event.y;
+    })
+    .on("end", (event,d)=>{
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null; d.fy = null;
+    });
+}
+
+// Seed data
+(function seed(){
+  const examples = [
+    {name:"Alpha.txt", text:"Alpha guideline for compliance and risk management. This document outlines policies for data handling and third party oversight. Encryption standards and key rotation are mandatory. Vendors must provide incident reporting within 24 hours."},
+    {name:"Beta.txt", text:"Beta policy describes operational risk controls and internal audit procedures. Focus on incident reporting and remediation actions. Vendors and outsourcing oversight require encryption and access reviews with key rotation."},
+    {name:"Gamma.txt", text:"Gamma standard: information security, data privacy controls, encryption standards, key rotation, user access reviews. Monitoring and alerting thresholds are defined for privileged accounts."},
+    {name:"Delta.txt", text:"Delta procedure: vendor due diligence, outsourcing oversight, service level monitoring, business continuity planning. Incident drill exercises ensure response readiness within 24 hours."},
+    {name:"Epsilon.txt", text:"Epsilon memo summarizing lessons learned from incidents, near misses, fraud attempts, and conduct breaches. Recommendations include stronger encryption, faster vendor incident reporting, and clearer escalation thresholds."}
+  ];
+  for(const f of examples){ addDocument(f.name, f.text); }
+  renderDocList();
+  recomputeLinks();
+  drawGraph();
+})();
+
+// Resize handling
+window.addEventListener('resize', () => {
+  const w = container.node().clientWidth;
+  const h = container.node().clientHeight;
+  svg.attr("viewBox", [0, 0, w, h]);
+  sim.force("center", d3.forceCenter(w/2, h/2));
+  sim.alpha(0.3).restart();
+});
+</script>
+</body>
+</html>
