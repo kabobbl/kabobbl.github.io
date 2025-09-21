@@ -51,7 +51,81 @@
     --chip-border: rgba(148,163,184,.22);
     --pill-bg:#0b1322;
   }
+  
+  /* Normalize pill button layout + height across all buttons */
+#viewToggleBtn,
+#themeBtn,
+#fileBtn,
+.details-btn,
+#detailBackToLib {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px; /* matches the visual height of Current View/Theme */
+}
 
+/* Dark mode: match Add documents & Details to "Current View" style */
+.theme-dark #fileBtn,
+.theme-dark .details-btn{
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: #ffffff;           /* already enforced, kept for clarity */
+  box-shadow: var(--shadow-1);
+}
+
+/* Make them pill-y like the Current View button */
+.theme-dark #fileBtn{
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+.theme-dark .details-btn{
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 600;
+}
+
+/* Subtle hover to match the UI language */
+.theme-dark #fileBtn:hover,
+.theme-dark .details-btn:hover{
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2);
+}
+/* Match hover effect for Current View toggle and Light/Dark toggle */
+.theme-dark #viewToggleBtn:hover,
+.theme-dark #themeBtn:hover{
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2);
+}
+/* Unified hover effect with subtle accent tint */
+#viewToggleBtn:hover,
+#themeBtn:hover,
+#fileBtn:hover,
+.details-btn:hover,
+#detailBackToLib:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 10%, var(--card-bg)),
+    color-mix(in srgb, var(--accent) 20%, var(--card-bg))
+  );
+}
+/* Softer hover glow for Light mode */
+body:not(.theme-dark) #viewToggleBtn:hover,
+body:not(.theme-dark) #themeBtn:hover,
+body:not(.theme-dark) #fileBtn:hover,
+body:not(.theme-dark) .details-btn:hover,
+body:not(.theme-dark) #detailBackToLib:hover {
+  border-color: var(--accent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 4%, var(--card-bg)),
+    color-mix(in srgb, var(--accent) 8%, var(--card-bg))
+  );
+  box-shadow: 0 3px 8px rgba(14,165,233,.20); /* lighter, softer glow */
+}
   html, body { height:100%; }
 
   body {
@@ -109,7 +183,7 @@
 
   .btn {
     background:var(--accent); color:#001018; border:none; border-radius:10px;
-    padding:10px 12px; font-weight:600; cursor:pointer;
+    padding:8px 12px; font-weight:600; cursor:pointer;
     box-shadow:var(--shadow-2);
   }
   .btn.ghost{ background:transparent; color:var(--text); border:1px solid var(--border); box-shadow:none; }
@@ -137,16 +211,28 @@
   #viewToggleBtn .sep{ opacity:.35; }
   #viewToggleBtn .hint{ font-size:11px; color:var(--muted); }
 
-  body:not(.theme-dark) #viewToggleBtn,
-  body:not(.theme-dark) #fileBtn{
-    background: linear-gradient(135deg, var(--node-grad-a), var(--node-grad-b));
-    color:#fff;
-    border:none;
-    box-shadow: 0 4px 12px rgba(14,165,233,.35);
-  }
-  body:not(.theme-dark) #viewToggleBtn .hint{ color:rgba(255,255,255,.85); }
+  
+
+/* Light mode: outlined pill style for ALL buttons */
+body:not(.theme-dark) #viewToggleBtn,
+body:not(.theme-dark) #fileBtn,
+body:not(.theme-dark) #themeBtn,
+body:not(.theme-dark) .details-btn,
+body:not(.theme-dark) #detailBackToLib {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);   /* outline baseline */
+  box-shadow: var(--shadow-1);
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
+
+
+  body:not(.theme-dark) #viewToggleBtn .hint{ color: var(--muted); }
   body:not(.theme-dark) #viewToggleBtn svg path,
-  body:not(.theme-dark) #viewToggleBtn svg circle{ stroke:#fff; }
+  body:not(.theme-dark) #viewToggleBtn svg circle{ stroke: var(--text); }
 
   .sidebar {
     grid-area:sidebar;
@@ -181,7 +267,7 @@
   .doc .meta { color:var(--muted); font-size:12px; margin-top:4px; }
 
   .doc .head-actions{ display:flex; align-items:center; gap:8px; }
-  .doc .details-btn{ padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); cursor:pointer; }
+  .doc .details-btn{ padding: 8px 12px; border-radius: 999px; border:1px solid var(--border); background:var(--card-bg); cursor:pointer; }
   .doc .details-btn:hover{ border-color:var(--accent); }
 
   .doc-meta-inline{
@@ -273,7 +359,18 @@
   .count.alert{ font-size:11px; color: #b91c1c; background: rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); padding:2px 6px; border-radius:999px; margin-left:6px; display:inline-flex; align-items:center; gap:6px; }
   .count.alert svg path{ stroke: #b91c1c; }
   
-  /* Dark mode: make all button text white for better legibility */
+  
+/* Unified button typography */
+#viewToggleBtn,
+#themeBtn,
+#fileBtn,
+.details-btn,
+#detailBackToLib {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Dark mode: make all button text white for better legibility */
   .theme-dark .btn,
   .theme-dark .icon-btn,
   .theme-dark .details-btn{ color:#ffffff !important; }
