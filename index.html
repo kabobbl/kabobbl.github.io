@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Document Network — Refined View Toggle</title>
+<title>Document Network — Document Detail View (Editable)</title>
 
 <!-- D3.js -->
 <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -31,6 +31,7 @@
     --chip-bg:#fff;
     --chip-border: rgba(15,23,42,.12);
     --pill-bg:#fff;
+    --success:#10b981;
   }
   .theme-dark{
     --bg-grad-1:#0b1220;
@@ -74,10 +75,7 @@
     transition:grid-template-columns .22s ease;
   }
 
-  /* Full Document Library mode */
-  body.doclib-full .layout{
-    grid-template-columns: 1fr 0;
-  }
+  body.doclib-full .layout{ grid-template-columns: 1fr 0; }
   body.doclib-full .main{ display:none; }
   body.doclib-full .sidebar{ box-shadow:var(--shadow-1); }
 
@@ -85,7 +83,6 @@
     grid-area:header;
     display:flex; align-items:center; justify-content:space-between; gap:12px;
   }
-
   .brand { font-weight:700; font-size:18px; letter-spacing:.2px; }
   .controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 
@@ -100,13 +97,12 @@
   }
   .search svg path{ stroke:var(--muted); }
 
-  /* Threshold control (kept in place but disabled in Library view) */
   .range {
     background:var(--card-bg); border:1px solid var(--border);
     border-radius:10px; padding:6px 10px;
     display:flex; align-items:center; gap:8px; font-size:12px;
     box-shadow:var(--shadow-1); color:var(--text);
-    min-width: 260px; /* keeps width consistent when dimmed */
+    min-width: 260px;
   }
   .range input[type=range]{ width:160px; }
   .range.disabled { opacity:.45; pointer-events:none; }
@@ -123,9 +119,9 @@
     background:var(--card-bg); color:var(--text); border:1px solid var(--border);
     border-radius:10px; padding:8px 10px; cursor:pointer; box-shadow:var(--shadow-1);
   }
+  /* Restore icon strokes for light/dark */
   .icon-btn svg path, .icon-btn svg circle{ stroke:var(--text); }
 
-  /* Refined View Toggle: compact pill with icon & target label */
   #viewToggleBtn{
     display:flex; align-items:center; gap:8px;
     padding:8px 12px; border-radius:999px;
@@ -133,8 +129,7 @@
     background:var(--card-bg);
     box-shadow:var(--shadow-1);
     font-weight:700; cursor:pointer;
-  
-    width: 240px; /* keep size constant regardless of label length */
+    width: 240px;
     justify-content: center;
     white-space: nowrap;
   }
@@ -142,7 +137,6 @@
   #viewToggleBtn .sep{ opacity:.35; }
   #viewToggleBtn .hint{ font-size:11px; color:var(--muted); }
 
-  /* Light mode gradient for key buttons */
   body:not(.theme-dark) #viewToggleBtn,
   body:not(.theme-dark) #fileBtn{
     background: linear-gradient(135deg, var(--node-grad-a), var(--node-grad-b));
@@ -179,35 +173,26 @@
   .docs { overflow:auto; padding:6px 6px 12px 6px; }
   .doc {
     border:1px solid var(--border); background:var(--card-bg); border-radius:12px;
-    padding:10px; margin:8px; cursor:pointer;
-    transition:box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    padding:10px; margin:8px; transition:box-shadow .15s ease, border-color .15s ease, background .15s ease;
   }
   .doc:hover{ border-color:rgba(14,165,233,.5); box-shadow:0 2px 10px rgba(14,165,233,.12); }
   .doc .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .doc .name { font-weight:600; font-size:13px; color:var(--text); }
   .doc .meta { color:var(--muted); font-size:12px; margin-top:4px; }
-  .caret{ transition:transform .18s ease; }
-  .doc.expanded .caret{ transform:rotate(90deg); }
+
+  .doc .head-actions{ display:flex; align-items:center; gap:8px; }
+  .doc .details-btn{ padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); cursor:pointer; }
+  .doc .details-btn:hover{ border-color:var(--accent); }
 
   .doc-meta-inline{
     margin:8px 8px 4px 8px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
     border:1px solid var(--border);
     border-radius:12px; padding:12px; color:var(--text);
   }
-  .grid {
-    display:grid; grid-template-columns: 1fr 1fr; gap:8px 12px; margin-top:8px;
-  }
-  .field {
-    background:var(--card-bg); border:1px solid var(--border);
-    border-radius:8px; padding:8px;
-  }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px 12px; margin-top:8px; }
+  .field { background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:8px; }
   .field .label { font-size:11px; color:var(--muted); }
   .field .value { font-weight:600; margin-top:2px; color:var(--text); }
-
-  .subtle { color:var(--muted); font-size:12px; }
-  .chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-  .chip{ padding:4px 8px; background:var(--chip-bg); border:1px solid var(--chip-border); border-radius:999px; font-size:12px; cursor:pointer; color:var(--text); }
-  .chip:hover{ border-color:var(--accent); }
 
   .main {
     grid-area:main;
@@ -229,12 +214,9 @@
     font-size:13px;
     line-height:1.45;
     box-shadow:var(--shadow-1);
-    opacity:0;
-    transform:translateY(-2px);
+    opacity:0; transform:translateY(-2px);
     transition:opacity .16s ease, transform .16s ease;
-    max-width:240px;
-    border:1px solid var(--border);
-    white-space:pre-wrap;
+    max-width:240px; border:1px solid var(--border); white-space:pre-wrap;
   }
   .tooltip.show{ opacity:1; transform:translateY(0); }
 
@@ -248,82 +230,60 @@
     transition:r .2s ease, filter .2s ease;
   }
   .theme-dark .node circle{ stroke:rgba(255,255,255,.8); }
-
   .node text{ font-size:13px; font-weight:600; fill:#fff; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
-  .node-label-bg{
-    fill:rgba(15,23,42,.7);
-    stroke:rgba(255,255,255,.35);
-    stroke-width:.6px;
-    pointer-events:none;
-  }
-  .legend{
-    position:absolute; left:12px; bottom:10px;
-    background:rgba(255,255,255,.85);
-    border:1px solid var(--border);
-    backdrop-filter:saturate(140%) blur(6px);
-    padding:6px 10px; border-radius:8px; font-size:12px; color:#0f172a;
-  }
-  .theme-dark .legend{
-    background:rgba(15,23,42,.65);
-    color:#e5e7eb;
-  }
-  .hint{
-    position:absolute; right:12px; bottom:10px;
-    font-size:12px; color:var(--muted);
-    background:rgba(255,255,255,.85); border:1px solid var(--border);
-    padding:6px 10px; border-radius:8px;
-  }
-  .theme-dark .hint{
-    background:rgba(15,23,42,.65);
-    color:#e5e7eb;
-  }
+  .node-label-bg{ fill:rgba(15,23,42,.7); stroke:rgba(255,255,255,.35); stroke-width:.6px; pointer-events:none; }
+  .legend{ position:absolute; left:12px; bottom:10px; background:rgba(255,255,255,.85); border:1px solid var(--border); backdrop-filter:saturate(140%) blur(6px); padding:6px 10px; border-radius:8px; font-size:12px; color:#0f172a; }
+  .theme-dark .legend{ background:rgba(15,23,42,.65); color:#e5e7eb; }
+  .hint{ position:absolute; right:12px; bottom:10px; font-size:12px; color:var(--muted); background:rgba(255,255,255,.85); border:1px solid var(--border); padding:6px 10px; border-radius:8px; }
+  .theme-dark .hint{ background:rgba(15,23,42,.65); color:#e5e7eb; }
 
-  .why-panel {
-    position:absolute; top:12px; right:12px; width:420px;
-    background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
-    box-shadow:var(--shadow-1);
-    padding:12px; font-size:13px; display:none;
-    max-height:80vh; overflow:auto; color:var(--text);
-  }
-  .why-panel h4{ margin:4px 0 8px 0; font-size:14px; }
-  .why-panel .close{ float:right; cursor:pointer; color:var(--muted); }
-  .match-card{
-    border:1px solid var(--border);
-    border-radius:10px; padding:10px; margin:8px 0; background:var(--card-bg); color:var(--text);
-  }
-  .pair-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .pair-head .score{ font-weight:600; }
-  .pair-texts{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:8px; }
-  .pair-text{ font-size:12px; line-height:1.45; background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--border); border-radius:8px; padding:8px; max-height:140px; overflow:auto; color:var(--text); }
-  .pair-meta{ margin-top:6px; color:var(--muted); font-size:11px; display:flex; gap:8px; flex-wrap:wrap; }
-  .pair-actions{ margin-top:8px; display:flex; gap:8px; }
-  mark{ background:#fde68a; padding:0 2px; border-radius:3px; }
+  /* Full-page Document Detail panel (editable) */
+  .detail-panel{ position:fixed; inset:0; z-index:50; display:none; background:linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2)); }
+  .detail-panel.show{ display:block; }
+  .detail-inner{ height:100%; display:grid; grid-template-rows:auto 1fr; }
+  .detail-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background:var(--card-bg); border-bottom:1px solid var(--border); box-shadow:var(--shadow-1); }
+  .detail-title{ display:flex; align-items:center; gap:10px; font-weight:700; }
+  .detail-actions{ display:flex; gap:8px; }
+  .detail-content{ height:100%; padding:16px; overflow:auto; display:grid; grid-template-columns: 360px 1fr; gap:16px; }
+  .detail-card{ background:var(--card-bg); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-1); padding:12px; }
+  .detail-card h4{ margin:0 0 8px 0; font-size:14px; }
+  .kv{ display:grid; grid-template-columns: 1fr; gap:8px; }
+  .kv .row{ display:grid; grid-template-columns: 140px 1fr; gap:10px; align-items:center; }
+  .kv .key{ font-size:12px; color:var(--muted); }
+  .kv .val{ font-weight:600; }
 
-  .modal {
-    position:fixed; inset:0; background:rgba(2,8,20,.55);
-    display:none; align-items:center; justify-content:center; padding:24px;
-  }
-  .modal .inner{
-    width:min(1100px, 96vw); max-height:90vh; background:var(--card-bg); color:var(--text); border-radius:14px;
-    box-shadow:0 20px 60px rgba(2,8,20,.4); overflow:hidden; display:flex; flex-direction:column;
-  }
-  .modal .bar{
-    display:flex; justify-content:space-between; align-items:center; padding:12px 14px;
-    border-bottom:1px solid var(--border);
-  }
-  .modal .content{
-    display:grid; grid-template-columns: 1fr 1fr; gap:0; flex:1; overflow:auto;
-  }
-  .side{
-    padding:14px; border-right:1px solid var(--border);
-  }
-  .side:last-child{ border-right:none; }
-  .side h5{ margin:0 0 6px 0; font-size:13px; }
-  .excerpt{
-    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--border);
-    border-radius:10px; padding:10px; font-size:13px; line-height:1.55; white-space:pre-wrap; color:var(--text);
-  }
+  .section{ margin-bottom:16px; }
+  .section h5{ margin:0 0 8px 0; font-size:13px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .section .stamp{ font-size:11px; color:var(--muted); }
+  .section .box{ min-height:120px; border:1px solid var(--border); border-radius:10px; padding:12px; background:var(--card-bg); line-height:1.55; outline:none; }
+  .section .box[contenteditable="true"]:focus{ box-shadow:0 0 0 2px var(--accent) inset; }
+  .save-badge{ font-size:11px; border:1px solid var(--border); border-radius:999px; padding:2px 8px; }
+  .save-badge.ok{ color:#065f46; border-color:#10b981; }
+  .pill{ padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:var(--pill-bg); font-size:12px; }
+
+  /* New styles for chevron + counters + dark-mode button text */
+  .doc .head-left{ display:flex; align-items:flex-start; gap:10px; }
+  .doc .chev{ transition: transform .18s ease; margin-top:2px; }
+  .doc.expanded .chev{ transform: rotate(90deg); }
+  .doc .chev svg path{ stroke: var(--text); }
+  
+  .count.dim{ font-size:11px; color: var(--muted); margin-left:6px; }
+  .count.warn{ font-size:11px; color: #b45309; background: rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); padding:2px 6px; border-radius:999px; margin-left:6px; display:inline-flex; align-items:center; gap:6px; }
+  .count.warn svg path, .count.warn svg circle{ stroke: #b45309; }
+  .count.alert{ font-size:11px; color: #b91c1c; background: rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35); padding:2px 6px; border-radius:999px; margin-left:6px; display:inline-flex; align-items:center; gap:6px; }
+  .count.alert svg path{ stroke: #b91c1c; }
+  
+  /* Dark mode: make all button text white for better legibility */
+  .theme-dark .btn,
+  .theme-dark .icon-btn,
+  .theme-dark .details-btn{ color:#ffffff !important; }
+  .theme-dark #viewToggleBtn .hint{ color:#ffffff !important; opacity:.85; }
+  
+  /* Details button baseline resets so it stands out on dark */
+  .details-btn{ background:var(--card-bg); color:var(--text); border:1px solid var(--border); }
+  .details-btn:hover{ border-color:var(--accent); }
 </style>
+
 </head>
 
 <body>
@@ -331,20 +291,17 @@
     <div class="header">
       <div class="brand">Document Network</div>
       <div class="controls">
-        <!-- Search -->
         <div class="search">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>
           <input id="searchInput" placeholder="Search documents..." />
         </div>
 
-        <!-- Link Threshold -->
         <div class="range" id="rangeWrap">
           <span>Link threshold</span>
           <input type="range" id="threshold" min="0" max="100" value="30" />
           <span id="thLabel">0.30</span>
         </div>
 
-        <!-- Refined toggle placed to the RIGHT of Link Threshold; static position in both views -->
         <button id="viewToggleBtn" class="icon-btn" aria-pressed="false" title="Switch to Document Library" aria-keyshortcuts="v">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path id="viewIcon" d="M3 12h18M3 6h12M3 18h12" stroke-width="2" stroke-linecap="round"/>
@@ -357,7 +314,6 @@
         <button class="btn" id="fileBtn">Add documents</button>
         <input type="file" id="fileInput" multiple style="display:none" accept=".txt,.md,.pdf,.docx,.html,.csv"/>
 
-        <!-- Theme toggle -->
         <button class="icon-btn" id="themeBtn" aria-pressed="false" title="Toggle light/dark mode">
           <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="12" r="4" stroke-width="2" />
@@ -368,12 +324,9 @@
       </div>
     </div>
 
-    <!-- Sidebar / Document Library -->
     <aside class="sidebar">
       <div class="side-head">
-        <div class="side-title">
-          <span>Documents</span>
-        </div>
+        <div class="side-title"><span>Documents</span></div>
         <div class="subtle" id="docCount">0 items</div>
       </div>
       <div class="drop" id="dropZone">
@@ -382,33 +335,69 @@
       <div class="docs" id="docList" aria-live="polite"></div>
     </aside>
 
-    <!-- Main graph (Diagram view) -->
     <main class="main" id="graph"></main>
   </div>
 
-<!-- Why panel -->
-<div class="why-panel" id="whyPanel">
-  <span class="close" id="whyClose">✕</span>
-  <h4>Why these documents link?</h4>
-  <div id="whyHeader" class="subtle" style="margin-bottom:8px;"></div>
-  <div id="whyContent"></div>
-</div>
-
-<!-- Modal viewer -->
-<div class="modal" id="viewerModal" role="dialog" aria-modal="true">
-  <div class="inner">
-    <div class="bar">
-      <div id="viewerTitle" style="font-weight:600;">Passage viewer</div>
-      <button class="btn ghost" id="viewerClose">Close</button>
-    </div>
-    <div class="content">
-      <div class="side">
-        <h5 id="leftTitle">A</h5>
-        <div class="excerpt" id="leftExcerpt"></div>
+<!-- Full-page Document Detail panel -->
+<div class="detail-panel" id="detailPanel" role="dialog" aria-modal="true" aria-labelledby="detailDocName">
+  <div class="detail-inner">
+    <div class="detail-bar">
+      <div class="detail-title">
+        <span class="pill" id="detailTopic">Topic</span>
+        <span id="detailDocName">Document name</span>
       </div>
-      <div class="side">
-        <h5 id="rightTitle">B</h5>
-        <div class="excerpt" id="rightExcerpt"></div>
+      <div class="detail-actions">
+        <button class="btn ghost" id="detailBackToLib">Back to Library</button>
+        
+      </div>
+    </div>
+    <div class="detail-content">
+      <div class="detail-card">
+        <h4>Metadata</h4>
+        <div class="kv" id="detailMeta"></div>
+        <div style="height:10px"></div>
+        <h4>Supporting Documents</h4>
+        <div id="detailSupports" class="chips"></div>
+        <div style="height:10px"></div>
+        <h4>Document History</h4>
+        <ul id="detailHistory" style="margin:8px 0 0 16px; padding:0;"></ul>
+      </div>
+      <div>
+        <div class="detail-card section">
+          <h4>Context</h4>
+          <div class="section-head">
+            <div class="stamp" id="stamp-context"></div>
+          </div>
+          <div class="box" id="detailContext" contenteditable="true" spellcheck="true"></div>
+        </div>
+        <div class="detail-card section">
+          <h4>Scope</h4>
+          <div class="section-head">
+            <div class="stamp" id="stamp-scope"></div>
+          </div>
+          <div class="box" id="detailScope" contenteditable="true" spellcheck="true"></div>
+        </div>
+        <div class="detail-card section">
+          <h4>Content</h4>
+          <div class="section-head">
+            <div class="stamp" id="stamp-content"></div>
+          </div>
+          <div class="box" id="detailContent" contenteditable="true" spellcheck="true"></div>
+        </div>
+        <div class="detail-card section">
+          <h4>Roles &amp; Responsibilities</h4>
+          <div class="section-head">
+            <div class="stamp" id="stamp-roles"></div>
+          </div>
+          <div class="box" id="detailRoles" contenteditable="true" spellcheck="true"></div>
+        </div>
+        <div class="detail-card section">
+          <h4>Appendices</h4>
+          <div class="section-head">
+            <div class="stamp" id="stamp-appendices"></div>
+          </div>
+          <div class="box" id="detailAppendices" contenteditable="true" spellcheck="true"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -437,14 +426,15 @@ function updateThemeButton(){
   const icon = document.getElementById('themeIcon');
   label.textContent = dark ? 'Dark' : 'Light';
   document.getElementById('themeBtn').setAttribute('aria-pressed', dark ? 'true' : 'false');
+  // Use CSS stroke for visibility. Swap glyphs for sun/moon.
   if(dark){
-    icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
   } else {
-    icon.innerHTML = `<circle cx="12" cy="12" r="4" stroke-width="2" /><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" stroke-width="2" stroke-linecap="round"/>`;
+    icon.innerHTML = '<circle cx="12" cy="12" r="4" stroke-width="2" /><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" stroke-width="2" stroke-linecap="round"/>';
   }
 }
 
-// ------------------------------ Helpers: tokenization & TF-IDF ------------------------------
+// ------------------------------ Helpers ------------------------------
 const stopwords = new Set("a,an,and,are,as,at,be,by,for,from,has,he,in,is,it,its,of,on,that,the,to,was,were,will,with,or,not,if,then,into,over,under,between,than,about,after,before,again,once,only,other,own,same,so,too,very,can,just,should,now".split(","));
 
 function tokenize(text){
@@ -489,8 +479,6 @@ function cosineSim(vecA, vecB){
   const denom = Math.sqrt(normA) * Math.sqrt(normB);
   return denom ? dot/denom : 0;
 }
-
-// sentence split keeping indices
 function splitSentences(text){
   const out = [];
   let start = 0;
@@ -507,30 +495,18 @@ function splitSentences(text){
   if(out.length === 0 && text) out.push({ text, start:0, end:text.length });
   return out;
 }
-
 function escapeHtml(s){ return s.replace(/[&<>\"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;","'":"&#39;" }[m])); }
-function highlightTerms(text, terms){
-  let esc = escapeHtml(text);
-  const uniq = Array.from(new Set(terms)).sort((a,b)=>b.length - a.length);
-  for(const t of uniq){
-    if(!t || t.length < 2) continue;
-    const re = new RegExp(`\\\\b${t.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\\\b`, 'gi');
-    esc = esc.replace(re, m => `<mark>${m}</mark>`);
-  }
-  return esc;
-}
 
-// Governance placeholders and extra metadata
+// Governance placeholders
 const OWNER_NAMES = ["Alex Morgan","Priya Nair","Liam O'Connor","Sofia Rossi","Chen Wei","Amira Haddad","Jonas Müller","Isabella García"];
 const APPROVER_NAMES = ["Maya Patel","Tom Andersen","Noah Brown","Olivia Martin","Hiro Tanaka","Grace Lee","Samuel Kim","Ava Thompson"];
 const TOPICS = ["Information Security","Operational Risk","Vendor Oversight","Business Continuity","Privacy","Access Management","Incident Response","Audit"];
-
 function pick(arr, seed){ return arr[seed % arr.length]; }
 function formatDate(d){
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,'0');
   const day = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
+  return y+'-'+m+'-'+day;
 }
 function fakeGovernance(seed){
   const now = new Date();
@@ -550,6 +526,10 @@ function fakeGovernance(seed){
 let documents = [];
 let links = [];
 let idCounter = 1;
+let expandedDocId = null;
+
+// Detail state
+let currentDetailId = null;
 
 // ------------------------------ UI elements ------------------------------
 const fileBtn = document.getElementById('fileBtn');
@@ -560,49 +540,37 @@ const docCount = document.getElementById('docCount');
 const searchInput = document.getElementById('searchInput');
 const thresholdEl = document.getElementById('threshold');
 const thLabel = document.getElementById('thLabel');
-const whyPanel = document.getElementById('whyPanel');
-const whyClose = document.getElementById('whyClose');
-const whyHeader = document.getElementById('whyHeader');
-const whyContent = document.getElementById('whyContent');
 const rangeWrap = document.getElementById('rangeWrap');
 const viewToggleBtn = document.getElementById('viewToggleBtn');
 const viewToggleTarget = document.getElementById('viewToggleTarget');
 const viewIcon = document.getElementById('viewIcon');
 
-whyClose.addEventListener('click', ()=> whyPanel.style.display='none');
+// Detail panel elements
+const detailPanel = document.getElementById('detailPanel');
+const detailDocName = document.getElementById('detailDocName');
+const detailTopic = document.getElementById('detailTopic');
+const detailMeta = document.getElementById('detailMeta');
+const detailSupports = document.getElementById('detailSupports');
+const detailHistory = document.getElementById('detailHistory');
+const detailContext = document.getElementById('detailContext');
+const detailScope = document.getElementById('detailScope');
+const detailContent = document.getElementById('detailContent');
+const detailRoles = document.getElementById('detailRoles');
+const detailAppendices = document.getElementById('detailAppendices');
+const detailBackToLib = document.getElementById('detailBackToLib');
 
-fileBtn.addEventListener('click', ()=>fileInput.click());
-fileInput.addEventListener('change', (e)=> handleFiles(e.target.files));
-
-['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, (e)=>{
-  e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover');
-}));
-['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, (e)=>{
-  e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover');
-}));
-dropZone.addEventListener('drop', (e)=> handleFiles(e.dataTransfer.files));
-
-searchInput.addEventListener('input', renderDocList);
-thresholdEl.addEventListener('input', () => { 
-  thLabel.textContent = (thresholdEl.value/100).toFixed(2); 
-  recomputeLinks(); drawGraph(); 
-});
-
-// -------------- Refined View Toggle Logic --------------
+// ------------------------------ View toggle ------------------------------
 function applyView(mode){
   const isLibrary = (mode === 'library');
   document.body.classList.toggle('doclib-full', isLibrary);
   viewToggleBtn.setAttribute('aria-pressed', isLibrary ? 'true' : 'false');
-  // keep toggle in same spot; only dim threshold
   rangeWrap.classList.toggle('disabled', isLibrary);
-  // target label indicates what you'll go TO next
   viewToggleTarget.textContent = isLibrary ? 'Current View: Library' : 'Current View: Diagram';
-  viewToggleBtn.title = isLibrary ? 'Switch to Diagram' : 'Switch to Document Library';
-  // swap icon (list for library target, graph for diagram target)
+  // Switch icon to hint target
   if(isLibrary){
-    viewIcon.setAttribute('d','M4 4h16v6H4zM4 14h16v6H4z'); // stacked rows = diagram target? flip: we want icon for target
+    viewIcon.setAttribute('d','M4 4h16v6H4zM4 14h16v6H4z');
   } else {
-    viewIcon.setAttribute('d','M3 12h18M3 6h12M3 18h12'); // list icon when target is library
+    viewIcon.setAttribute('d','M3 12h18M3 6h12M3 18h12');
   }
   localStorage.setItem('docnet-view', mode);
 }
@@ -616,7 +584,6 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault(); toggleView();
   }
 });
-// init from storage
 (function initView(){
   const saved = localStorage.getItem('docnet-view');
   applyView(saved === 'library' ? 'library' : 'diagram');
@@ -641,6 +608,11 @@ async function handleFiles(fileList){
   drawGraph();
   renderDocList();
 }
+fileBtn.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', (e)=> handleFiles(e.target.files));
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); }));
+dropZone.addEventListener('drop', (e)=> handleFiles(e.dataTransfer.files));
 
 function addDocument(name, text){
   const tokens = tokenize(text);
@@ -654,7 +626,14 @@ function addDocument(name, text){
   const doc = { 
     id: 'doc' + (idCounter++), name, text, tokens, tf: tfMap, vec:null, summary, sentences,
     owner: meta.owner, approver: meta.approver, effectiveDate: meta.effectiveDate, nextApprovalDate: meta.nextApprovalDate,
-    topic: meta.topic, supportIds: [], history: []
+    topic: meta.topic, supportIds: [], history: [],
+    details: {
+      context: "Add the background, purpose, and business context for this document.",
+      scope: "Describe what is in and out of scope.",
+      content: "Place or summarize the main content here.",
+      roles: "List key roles and responsibilities involved.",
+      appendices: "Include supporting materials, references, glossary, etc."
+    }
   };
   const idx = documents.length;
   if(idx >= 1) doc.supportIds.push(documents[idx-1].id);
@@ -683,9 +662,14 @@ function recomputeLinks(){
   }
   links = out;
 }
+thresholdEl.addEventListener('input', () => { 
+  thLabel.textContent = (thresholdEl.value/100).toFixed(2); 
+  recomputeLinks(); drawGraph(); 
+});
+searchInput.addEventListener('input', renderDocList);
 
-// ------------------------------ Sidebar rendering ------------------------------
-let expandedDocId = null;
+// ------------------------------ Sidebar rendering (with Details button) ------------------------------
+
 function renderDocList(){
   const q = (searchInput.value||'').toLowerCase();
   const list = document.getElementById('docList');
@@ -696,61 +680,98 @@ function renderDocList(){
       const card = document.createElement('div');
       const isExpanded = (expandedDocId === d.id);
       card.className = 'doc' + (isExpanded ? ' expanded' : '');
-      card.setAttribute('role','button');
-      card.setAttribute('tabindex','0');
-      card.innerHTML = `<div class="row">
-                          <div>
-                            <div class="name">${d.name}</div>
-                            <div class="meta">${d.tokens.length} tokens • Owner: ${d.owner} • Topic: ${d.topic}</div>
-                          </div>
-                          <svg class="caret" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                        </div>`;
-      const toggle = () => {
+      card.setAttribute('data-docid', d.id);
+
+      // Header with chevron + details button
+      card.innerHTML = '<div class="row">\
+                          <div class="head-left">\
+                            <div class="chev" aria-hidden="true">\
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">\
+                                <path d="M9 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
+                              </svg>\
+                            </div>\
+                            <div>\
+                              <div class="name">'+d.name+'</div>\
+                              <div class="meta">'+d.tokens.length+' tokens • Owner: '+d.owner+' • Topic: '+d.topic+'</div>\
+                            </div>\
+                          </div>\
+                          <div class="head-actions">\
+                            <button class="details-btn" title="Open Details" data-docid="'+d.id+'">Details</button>\
+                          </div>\
+                        </div>';
+
+      // Details button (doesn't toggle expansion)
+      card.querySelectorAll('button.details-btn[title="Open Details"]').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const id = btn.getAttribute('data-docid');
+          openDetail(id);
+        });
+      });
+
+      // Card click toggles expansion
+      card.addEventListener('click', () => {
         expandedDocId = (expandedDocId === d.id) ? null : d.id;
         renderDocList();
-      };
-      card.addEventListener('click', toggle);
-      card.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' '){ toggle(); }});
+      });
+
+      if (isExpanded) card.classList.add('expanded');
       list.appendChild(card);
 
+      // Expanded inline metadata
       if (isExpanded){
         const meta = document.createElement('div');
         meta.className = 'doc-meta-inline';
 
         const supports = (d.supportIds||[]).map(id => {
           const sd = documents.find(x => x.id===id);
-          return sd ? `<span class="chip" data-docid="${sd.id}" title="Open ${sd.name}">${sd.name}</span>` : '';
+          return sd ? '<span class="chip" data-docid="'+sd.id+'" title="Open '+sd.name+'">'+sd.name+'</span>' : '';
         }).join('');
 
-        const history = (d.history||[]).map(h => `<li><strong>${h.version}</strong> — ${h.date} — <span class="subtle">${h.note}</span></li>`).join('');
+        // Counters
+        function daysBetween(a, b){
+          const ms = Date.parse(b) - Date.parse(a);
+          return Math.round(ms / (1000*60*60*24));
+        }
+        const nowISO = new Date().toISOString().slice(0,10);
+        const daysSinceEff = daysBetween(d.effectiveDate, nowISO);
+        const daysUntilNext = daysBetween(nowISO, d.nextApprovalDate);
 
-        meta.innerHTML = `
-          <details open>
-            <summary><strong>Governance</strong></summary>
-            <div class="grid" style="margin-top:8px;">
-              <div class="field"><div class="label">Topic</div><div class="value">${d.topic}</div></div>
-              <div class="field"><div class="label">Owner</div><div class="value">${d.owner}</div></div>
-              <div class="field"><div class="label">Effective Date</div><div class="value">${d.effectiveDate}</div></div>
-              <div class="field"><div class="label">Next Approval Date</div><div class="value">${d.nextApprovalDate}</div></div>
-            </div>
-          </details>
-          <details style="margin-top:10px;" open>
-            <summary><strong>Supporting Documents</strong></summary>
-            <div class="chips" style="margin-top:8px;">${supports || '<span class="subtle">None</span>'}</div>
-          </details>
-          <details style="margin-top:10px;">
-            <summary><strong>Document History</strong></summary>
-            <ul style="margin:8px 0 0 16px; padding:0;">${history || '<li class="subtle">No history</li>'}</ul>
-          </details>
-          <details style="margin-top:10px;">
-            <summary><strong>Summary</strong></summary>
-            <div class="subtle" style="margin-top:8px;">${d.summary || '<em>No preview for this file type in demo.</em>'}</div>
-          </details>
-        `;
+        let nextBadge = '<span class="count dim">('+daysUntilNext+' days to go)</span>';
+        if (daysUntilNext < 0){
+          nextBadge = '<span class="count alert"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Overdue</span>';
+        } else if (daysUntilNext <= 90){
+          nextBadge = '<span class="count warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 8v4m0 4h.01" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke-width="2"/></svg> '+daysUntilNext+' days to go</span>';
+        }
+
+        const history = (d.history||[]).map(h => '<li><strong>'+h.version+'</strong> — '+h.date+' — <span class="subtle">'+h.note+'</span></li>').join('');
+
+        meta.innerHTML = '\
+          <details open>\
+            <summary><strong>Governance</strong></summary>\
+            <div class="grid" style="margin-top:8px;">\
+              <div class="field"><div class="label">Topic</div><div class="value">'+d.topic+'</div></div>\
+              <div class="field"><div class="label">Owner</div><div class="value">'+d.owner+'</div></div>\
+              <div class="field"><div class="label">Effective Date</div><div class="value">'+d.effectiveDate+' <span class="count dim">('+daysSinceEff+' days ago)</span></div></div>\
+              <div class="field"><div class="label">Next Approval Date</div><div class="value">'+d.nextApprovalDate+' '+nextBadge+'</div></div>\
+            </div>\
+          </details>\
+          <details style="margin-top:10px;" open>\
+            <summary><strong>Supporting Documents</strong></summary>\
+            <div class="chips" style="margin-top:8px;">'+(supports || '<span class="subtle">None</span>')+'</div>\
+          </details>\
+          <details style="margin-top:10px;">\
+            <summary><strong>Document History</strong></summary>\
+            <ul style="margin:8px 0 0 16px; padding:0;">'+(history || '<li class="subtle">No history</li>')+'</ul>\
+          </details>\
+          <details style="margin-top:10px;">\
+            <summary><strong>Summary</strong></summary>\
+            <div class="subtle" style="margin-top:8px;">'+(d.summary || '<em>No preview for this file type in demo.</em>')+'</div>\
+          </details>';
+
         meta.querySelectorAll('.chip').forEach(ch => {
-          ch.addEventListener('click', () => {
+          ch.addEventListener('click', (ev) => {
+            ev.stopPropagation();
             const id = ch.getAttribute('data-docid');
             expandedDocId = id;
             renderDocList();
@@ -760,6 +781,148 @@ function renderDocList(){
       }
     });
 }
+// ------------------------------ Document Detail (editable + autosave) ------------------------------
+function getUserName(){
+  let name = localStorage.getItem('docnet-username') || '';
+  if(!name){
+    name = prompt('Your name for edit stamps? (stored only in this browser)', 'Editor');
+    if(name) localStorage.setItem('docnet-username', name);
+    else name = 'Editor';
+  }
+  return name;
+}
+function keyFor(docId, section){ return `docnet:detail:${docId}:${section}`; }
+function saveSection(docId, section, text){
+  const user = getUserName();
+  const updatedAt = new Date().toISOString();
+  const payload = { text, user, updatedAt };
+  localStorage.setItem(keyFor(docId, section), JSON.stringify(payload));
+  updateStamp(section, payload);
+}
+function loadSection(docId, section, fallback){
+  try{
+    const raw = localStorage.getItem(keyFor(docId, section));
+    if(!raw) return { text: fallback||'', user:null, updatedAt:null };
+    return JSON.parse(raw);
+  }catch(e){
+    return { text: fallback||'', user:null, updatedAt:null };
+  }
+}
+function formatStamp(u, tISO){
+  if(!tISO) return '';
+  const d = new Date(tISO);
+  const date = d.toLocaleString();
+  return `Last updated by ${u||'—'} on ${date}`;
+}
+function updateStamp(section, payload){
+  const el = document.getElementById(`stamp-${section}`);
+  if(el) el.textContent = formatStamp(payload.user, payload.updatedAt);
+}
+
+function wireEditableBox(el, docId, section, fallbackText){
+  const { text, user, updatedAt } = loadSection(docId, section, fallbackText);
+  el.innerText = text || fallbackText || '';
+  updateStamp(section, {user, updatedAt});
+
+  let saveTimer = null;
+  el.addEventListener('input', ()=>{
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      saveSection(docId, section, el.innerText.trim());
+      // transient saved badge
+      showSavedBadge(el);
+    }, 420);
+  });
+}
+function showSavedBadge(el){
+  let badge = document.createElement('span');
+  badge.className = 'save-badge ok';
+  badge.textContent = 'Saved';
+  badge.style.marginLeft = '8px';
+  badge.style.opacity = '0';
+  // append next to heading stamp if possible
+  const parentCard = el.closest('.detail-card');
+  if(parentCard){
+    const heading = parentCard.querySelector('h4');
+    if(heading){
+      heading.appendChild(badge);
+      requestAnimationFrame(()=>{
+        badge.style.transition = 'opacity .15s ease';
+        badge.style.opacity = '1';
+        setTimeout(()=>{
+          badge.style.opacity = '0';
+          setTimeout(()=> badge.remove(), 250);
+        }, 900);
+      });
+      return;
+    }
+  }
+  // fallback: append after box
+  el.insertAdjacentElement('afterend', badge);
+  requestAnimationFrame(()=>{
+    badge.style.transition = 'opacity .15s ease';
+    badge.style.opacity = '1';
+    setTimeout(()=>{
+      badge.style.opacity = '0';
+      setTimeout(()=> badge.remove(), 250);
+    }, 900);
+  });
+}
+
+function openDetail(docId){
+  const doc = documents.find(x => x.id === docId);
+  if(!doc) return;
+  currentDetailId = docId;
+  // Header
+  detailDocName.textContent = doc.name;
+  detailTopic.textContent = doc.topic;
+  // Meta
+  detailMeta.innerHTML = '';
+  [['Owner',doc.owner],['Approver',doc.approver],['Effective Date',doc.effectiveDate],['Next Approval Date',doc.nextApprovalDate]].forEach(([k,v])=>{
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<div class="key">'+k+'</div><div class="val">'+(v||'—')+'</div>';
+    detailMeta.appendChild(row);
+  });
+  // Supports
+  detailSupports.innerHTML='';
+  if((doc.supportIds||[]).length===0){
+    detailSupports.innerHTML = '<span class="subtle">None</span>';
+  } else {
+    doc.supportIds.forEach(id=>{
+      const sd = documents.find(x=>x.id===id);
+      if(!sd) return;
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = sd.name;
+      pill.title = 'Open '+sd.name+' in Details';
+      pill.addEventListener('click', ()=> openDetail(sd.id));
+      detailSupports.appendChild(pill);
+    });
+  }
+  // History
+  detailHistory.innerHTML='';
+  (doc.history||[]).forEach(h=>{
+    const li = document.createElement('li');
+    li.innerHTML = '<strong>'+h.version+'</strong> — '+h.date+' — <span class="subtle">'+h.note+'</span>';
+    detailHistory.appendChild(li);
+  });
+
+  // Editable sections with autosave + stamps
+  wireEditableBox(detailContext, doc.id, 'context', doc.details.context||'');
+  wireEditableBox(detailScope, doc.id, 'scope', doc.details.scope||'');
+  wireEditableBox(detailContent, doc.id, 'content', doc.details.content || (doc.summary||''));
+  wireEditableBox(detailRoles, doc.id, 'roles', doc.details.roles||'');
+  wireEditableBox(detailAppendices, doc.id, 'appendices', doc.details.appendices||'');
+
+  detailPanel.classList.add('show');
+  detailBackToLib.focus();
+  applyView('library');
+}
+
+// Close handlers
+detailBackToLib.addEventListener('click', () => { detailPanel.classList.remove('show'); applyView('library'); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && detailPanel.classList.contains('show')) detailPanel.classList.remove('show'); });
 
 // ------------------------------ Graph (D3) ------------------------------
 const container = d3.select("#graph");
@@ -799,26 +962,21 @@ function drawGraph(){
   const maxVal = links.length ? d3.max(links, d=>d.value) : 1;
   const strokeScale = d3.scaleLinear().domain([0, maxVal]).range([1.2, 6]);
 
-  linkSel = linkSel.data(links, d => d.source + '-' + d.target);
+  linkSel = linkSel.data(links, d => (d.source.id||d.source) + '-' + (d.target.id||d.target));
   linkSel.exit().remove();
   const linkEnter = linkSel.enter().append("line")
     .attr("class","link")
     .attr("stroke-width", d=>strokeScale(d.value))
     .attr("stroke-linecap","round")
-    .on("click", (event,d)=> showWhyForEdge(d))
     .on("mouseenter", function(event,d){
       d3.select(this).classed("active", true);
       const [mx,my] = d3.pointer(event, container.node());
       tooltip.style("left", mx+14+"px").style("top", my+14+"px")
-        .html(`<strong>${idToName(d.source)} ↔ ${idToName(d.target)}</strong><br/>Similarity: ${d.value.toFixed(3)}`)
+        .html('<strong>'+idToName(d.source)+' ↔ '+idToName(d.target)+'</strong><br/>Similarity: '+d.value.toFixed(3))
         .classed("show", true);
     })
-    .on("mouseleave", function(){
-      d3.select(this).classed("active", false);
-      tooltip.classed("show", false);
-    });
-  linkSel = linkEnter.merge(linkSel)
-    .attr("stroke-width", d=>strokeScale(d.value));
+    .on("mouseleave", function(){ d3.select(this).classed("active", false); tooltip.classed("show", false); });
+  linkSel = linkEnter.merge(linkSel).attr("stroke-width", d=>strokeScale(d.value));
 
   nodeSel = nodeSel.data(nodes, d => d.id);
   nodeSel.exit().remove();
@@ -827,16 +985,11 @@ function drawGraph(){
   nodeEnter.append("text");
   nodeEnter.insert("rect", "text").attr("class", "node-label-bg");
   nodeEnter.on("mouseenter", function(event, d){
-    linkSel.classed("active", l => l.source.id===d.id || l.target.id===d.id);
-  }).on("mouseleave", function(){
-    linkSel.classed("active", false);
-  }).on("click", (event, d)=> {
+    linkSel.classed("active", l => (l.source.id||l.source)===d.id || (l.target.id||l.target)===d.id);
+  }).on("mouseleave", function(){ linkSel.classed("active", false); })
+  .on("click", (event, d)=> {
     const doc = documents.find(x => x.id===d.id);
-    if(doc){ 
-      expandedDocId = (expandedDocId === doc.id ? null : doc.id); 
-      // do NOT switch views; only reveal/refresh metadata panel
-      renderDocList();
-    }
+    if(doc){ expandedDocId = (expandedDocId === doc.id ? null : doc.id); renderDocList(); }
   });
   nodeSel = nodeEnter.merge(nodeSel);
   updateNodeLabels(nodeSel);
@@ -847,28 +1000,17 @@ function drawGraph(){
       .attr("y1", d=> nodeById(d.source).y)
       .attr("x2", d=> nodeById(d.target).x)
       .attr("y2", d=> nodeById(d.target).y);
-    nodeSel.attr("transform", d=>`translate(${d.x},${d.y})`);
+    nodeSel.attr("transform", d=>'translate('+d.x+','+d.y+')');
   });
   sim.force("link").links(links);
   sim.alpha(0.8).restart();
 }
 
-function nodeById(id){ return sim.nodes().find(n => n.id === (id.id || id)); }
-function idToName(id){
-  const doc = documents.find(d => d.id === (id.id || id));
-  return doc ? doc.name : id;
-}
-function abbrev(name){
-  if(name.length <= 12) return name;
-  const parts = name.split('.');
-  const base = parts[0];
-  return base.length > 10 ? base.slice(0,10) + '…' : base;
-}
+function nodeById(id){ const k = (id.id || id); return sim.nodes().find(n => n.id === k); }
+function idToName(id){ const k = (id.id || id); const doc = documents.find(d => d.id === k); return doc ? doc.name : k; }
+function abbrev(name){ if(name.length <= 12) return name; const parts = name.split('.'); const base = parts[0]; return base.length > 10 ? base.slice(0,10) + '…' : base; }
 
-const LABEL_PAD_X = 8;
-const LABEL_PAD_Y = 4;
-const LABEL_CORNER = 8;
-
+const LABEL_PAD_X = 8, LABEL_PAD_Y = 4, LABEL_CORNER = 8;
 function updateNodeLabels(selection){
   selection.each(function(d){
     const group = d3.select(this);
@@ -881,60 +1023,19 @@ function updateNodeLabels(selection){
       .attr("y", bbox.y - LABEL_PAD_Y)
       .attr("width", bbox.width + LABEL_PAD_X * 2)
       .attr("height", bbox.height + LABEL_PAD_Y * 2)
-      .attr("rx", LABEL_CORNER)
-      .attr("ry", LABEL_CORNER);
+      .attr("rx", LABEL_CORNER).attr("ry", LABEL_CORNER);
   });
-}
-
-// ------------------------------ Why panel rendering ------------------------------
-function showWhyForEdge(edge){
-  const a = documents.find(d => d.id === (edge.source.id || edge.source));
-  const b = documents.find(d => d.id === (edge.target.id || edge.target));
-  if(!a || !b) return;
-
-  const pairs = computePairs(a, b, {k:10, threshold:0.3});
-  document.getElementById('whyHeader').textContent = `${a.name} ↔ ${b.name} • doc sim ${edge.value.toFixed(3)}`;
-
-  whyContent.innerHTML = '';
-  pairs.forEach((p, idx) => {
-    const shared = p.overlap.shared_terms || [];
-    const aHtml = highlightTerms(p.a.text, shared);
-    const bHtml = highlightTerms(p.b.text, shared);
-    const card = document.createElement('div');
-    card.className = 'match-card';
-    card.innerHTML = `
-      <div class="pair-head">
-        <div class="score">Match #${idx+1} • score ${p.score.toFixed(3)}</div>
-        <div class="subtle">${shared.slice(0,6).join(', ')}</div>
-      </div>
-      <div class="pair-texts">
-        <div class="pair-text">${aHtml}</div>
-        <div class="pair-text">${bHtml}</div>
-      </div>
-    `;
-    whyContent.appendChild(card);
-  });
-
-  document.getElementById('whyPanel').style.display = 'block';
 }
 
 // Drag helpers
 function drag(simulation){
   return d3.drag()
-    .on("start", (event,d)=>{
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x; d.fy = d.y;
-    })
-    .on("drag", (event,d)=>{
-      d.fx = event.x; d.fy = event.y;
-    })
-    .on("end", (event,d)=>{
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null; d.fy = null;
-    });
+    .on("start", (event,d)=>{ if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on("drag", (event,d)=>{ d.fx = event.x; d.fy = event.y; })
+    .on("end", (event,d)=>{ if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; });
 }
 
-// Seed data
+// Seed sample files
 (function seed(){
   const examples = [
     {name:"Alpha.txt", text:"Alpha guideline for compliance and risk management. This document outlines policies for data handling and third party oversight. Encryption standards and key rotation are mandatory. Vendors must provide incident reporting within 24 hours."},
@@ -944,9 +1045,7 @@ function drag(simulation){
     {name:"Epsilon.txt", text:"Epsilon memo summarizing lessons learned from incidents, near misses, fraud attempts, and conduct breaches. Recommendations include stronger encryption, faster vendor incident reporting, and clearer escalation thresholds."}
   ];
   for(const f of examples){ addDocument(f.name, f.text); }
-  recomputeLinks();
-  drawGraph();
-  renderDocList();
+  recomputeLinks(); drawGraph(); renderDocList();
 })();
 
 // Resize handling
