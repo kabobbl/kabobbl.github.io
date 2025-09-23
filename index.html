@@ -379,6 +379,25 @@ body:not(.theme-dark) #detailBackToLib {
   /* Details button baseline resets so it stands out on dark */
   .details-btn{ background:var(--card-bg); color:var(--text); border:1px solid var(--border); }
   .details-btn:hover{ border-color:var(--accent); }
+
+  /* Detail view tabs */
+  .detail-tabs { display:flex; gap:8px; align-items:center; }
+  .tab-btn{
+    appearance:none; border:1px solid var(--border); background:var(--card-bg);
+    padding:8px 12px; border-radius:999px; font-weight:600; font-size:12px; cursor:pointer;
+    box-shadow:var(--shadow-1); color:var(--text);
+  }
+  .tab-btn:hover{ border-color: var(--accent); box-shadow: var(--shadow-2); }
+  .tab-btn[aria-pressed="true"]{
+    border-color: var(--accent);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 10%, var(--card-bg)),
+      color-mix(in srgb, var(--accent) 20%, var(--card-bg))
+    );
+  }
+  .theme-dark .tab-btn{ color:#fff; }
+
 </style>
 
 </head>
@@ -444,7 +463,11 @@ body:not(.theme-dark) #detailBackToLib {
         <span id="detailDocName">Document name</span>
       </div>
       <div class="detail-actions">
-        <button class="btn ghost" id="detailBackToLib">Back to Library</button>
+        <div class="detail-tabs">
+          <button class="tab-btn" id="tabRead" type="button" aria-pressed="true" title="View published content">Read</button>
+          <button class="tab-btn" id="tabEdit" type="button" aria-pressed="false" title="Edit draft (autosaves locally)">Propose Edits</button>
+        </div>
+                <button class="btn ghost" id="detailBackToLib">Back to Library</button>
         
       </div>
     </div>
@@ -949,7 +972,31 @@ function showSavedBadge(el){
         setTimeout(()=>{
           badge.style.opacity = '0';
           setTimeout(()=> badge.remove(), 250);
-        }, 900);
+        }
+
+// ------------------------------ Detail read/edit tabs ------------------------------
+let detailMode = 'read';
+function setDetailMode(mode){
+  detailMode = mode;
+  const editable = (mode === 'edit');
+  const boxes = [detailContext, detailScope, detailContent, detailRoles, detailAppendices];
+  boxes.forEach(b => { if (b) b.setAttribute('contenteditable', editable ? 'true' : 'false'); });
+  const readBtn = document.getElementById('tabRead');
+  const editBtn = document.getElementById('tabEdit');
+  if (readBtn && editBtn){
+    readBtn.setAttribute('aria-pressed', mode === 'read' ? 'true' : 'false');
+    editBtn.setAttribute('aria-pressed', mode === 'edit' ? 'true' : 'false');
+  }
+}
+// Attach listeners once elements are available
+document.addEventListener('DOMContentLoaded', () => {
+  const readBtn = document.getElementById('tabRead');
+  const editBtn = document.getElementById('tabEdit');
+  if (readBtn) readBtn.addEventListener('click', () => setDetailMode('read'));
+  if (editBtn) editBtn.addEventListener('click', () => setDetailMode('edit'));
+});
+
+, 900);
       });
       return;
     }
@@ -1012,6 +1059,7 @@ function openDetail(docId){
   wireEditableBox(detailRoles, doc.id, 'roles', doc.details.roles||'');
   wireEditableBox(detailAppendices, doc.id, 'appendices', doc.details.appendices||'');
 
+  setDetailMode('read');
   detailPanel.classList.add('show');
   detailBackToLib.focus();
   applyView('library');
