@@ -624,6 +624,40 @@ let documents = [];
 let links = [];
 let idCounter = 1;
 let expandedDocId = null;
+// ------------------------------ Data Adapter ------------------------------
+// The dataAdapter centralizes access to documents, relations, hierarchy, and section persistence.
+// It currently wraps existing in-memory state and localStorage implementations, but provides a seam
+// for swapping in a database-backed API in the future.
+const dataAdapter = {
+  listDocuments({ query } = {}) {
+    if (!query) return documents;
+    const q = query.toLowerCase();
+    return documents.filter(d => d.name.toLowerCase().includes(q) || (d.text || '').toLowerCase().includes(q));
+  },
+  getDocument(id) {
+    return documents.find(d => d.id === id);
+  },
+  listRelations() {
+    return links;
+  },
+  listHierarchy() {
+    const roots = [];
+    const nodes = {};
+    documents.forEach(d => {
+      if (!d.supportIds || d.supportIds.length === 0) {
+        roots.push(d.id);
+      }
+      nodes[d.id] = { children: (d.supportIds || []).slice() };
+    });
+    return { roots, nodes };
+  },
+  saveSection(docId, section, text) {
+    saveSection(docId, section, text);
+  },
+  loadSection(docId, section, fallback) {
+    return loadSection(docId, section, fallback);
+  }
+};
 
 // Detail state
 let currentDetailId = null;
@@ -917,7 +951,7 @@ function updateStamp(section, payload){
 }
 
 function wireEditableBox(el, docId, section, fallbackText){
-  const { text, user, updatedAt } = loadSection(docId, section, fallbackText);
+  const { text, user, updatedAt } = dataAdapter.loadSection(docId, section, fallbackText);
   el.innerText = text || fallbackText || '';
   updateStamp(section, {user, updatedAt});
 
@@ -925,7 +959,7 @@ function wireEditableBox(el, docId, section, fallbackText){
   el.addEventListener('input', ()=>{
     if(saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(()=>{
-      saveSection(docId, section, el.innerText.trim());
+      dataAdapter.saveSection(docId, section, el.innerText.trim());
       // transient saved badge
       showSavedBadge(el);
     }, 420);
@@ -963,6 +997,49 @@ function showSavedBadge(el){
       badge.style.opacity = '0';
       setTimeout(()=> badge.remove(), 250);
     }, 900);
+  });
+}
+
+// ------------------------------ Detail read/edit tabs ------------------------------
+// Provide a tabbed interface to switch between read-only view and proposing edits
+let detailMode = 'read';
+function ensureDetailTabs(){
+  const panel = detailPanel;
+  if(!panel) return;
+  let tabs = document.getElementById('detailTabs');
+  if(!tabs){
+    tabs = document.createElement('div');
+    tabs.id = 'detailTabs';
+    tabs.className = 'detail-tabs';
+    tabs.innerHTML = '<button id="tabRead" class="tab-btn" aria-pressed="true">Read</button>' +
+                     '<button id="tabEdit" class="tab-btn" aria-pressed="false">Propose Edits</button>';
+    panel.insertBefore(tabs, panel.firstChild);
+    const readBtn = tabs.querySelector('#tabRead');
+    const editBtn = tabs.querySelector('#tabEdit');
+    readBtn.addEventListener('click', () => setDetailMode('read'));
+    editBtn.addEventListener('click', () => setDetailMode('edit'));
+  }
+}
+
+function setDetailMode(mode){
+  detailMode = mode;
+  const readBtn = document.getElementById('tabRead');
+  const editBtn = document.getElementById('tabEdit');
+  if(readBtn) readBtn.setAttribute('aria-pressed', mode === 'read');
+  if(editBtn) editBtn.setAttribute('aria-pressed', mode === 'edit');
+  // Toggle editability of section boxes
+  const boxes = [detailContext, detailScope, detailContent, detailRoles, detailAppendices];
+  boxes.forEach(el => {
+    if(!el) return;
+    if(mode === 'edit'){
+      el.setAttribute('contenteditable','true');
+    } else {
+      el.setAttribute('contenteditable','false');
+    }
+  });
+  // Show stamps only in edit mode
+  document.querySelectorAll('.stamp').forEach(stamp => {
+    stamp.style.display = (mode === 'edit') ? '' : 'none';
   });
 }
 
@@ -1011,7 +1088,9 @@ function openDetail(docId){
   wireEditableBox(detailContent, doc.id, 'content', doc.details.content || (doc.summary||''));
   wireEditableBox(detailRoles, doc.id, 'roles', doc.details.roles||'');
   wireEditableBox(detailAppendices, doc.id, 'appendices', doc.details.appendices||'');
-
+  // Ensure read/edit tabs exist and default to read mode
+  ensureDetailTabs();
+  setDetailMode('read');
   detailPanel.classList.add('show');
   detailBackToLib.focus();
   applyView('library');
