@@ -989,6 +989,27 @@ function showSavedBadge(el){
   });
 }
 
+// ------------------------------ Detail read/edit tabs ------------------------------
+let detailMode = 'read';
+function setDetailMode(mode){
+  detailMode = mode;
+  const editable = (mode === 'edit');
+  const boxes = [detailContext, detailScope, detailContent, detailRoles, detailAppendices];
+  boxes.forEach(b => { if (b) b.setAttribute('contenteditable', editable ? 'true' : 'false'); });
+  const readBtn = document.getElementById('tabRead');
+  const editBtn = document.getElementById('tabEdit');
+  if (readBtn && editBtn){
+    readBtn.setAttribute('aria-pressed', mode === 'read' ? 'true' : 'false');
+    editBtn.setAttribute('aria-pressed', mode === 'edit' ? 'true' : 'false');
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const readBtn = document.getElementById('tabRead');
+  const editBtn = document.getElementById('tabEdit');
+  if (readBtn) readBtn.addEventListener('click', () => setDetailMode('read'));
+  if (editBtn) editBtn.addEventListener('click', () => setDetailMode('edit'));
+});
+
 function openDetail(docId){
   const doc = documents.find(x => x.id === docId);
   if(!doc) return;
@@ -1004,6 +1025,43 @@ function openDetail(docId){
     row.innerHTML = '<div class="key">'+k+'</div><div class="val">'+(v||'—')+'</div>';
     detailMeta.appendChild(row);
   });
+  // Supports
+  detailSupports.innerHTML='';
+  if((doc.supportIds||[]).length===0){
+    detailSupports.innerHTML = '<span class="subtle">None</span>';
+  } else {
+    doc.supportIds.forEach(id=>{
+      const sd = documents.find(x=>x.id===id);
+      if(!sd) return;
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = sd.name;
+      pill.title = 'Open '+sd.name+' in Details';
+      pill.addEventListener('click', ()=> openDetail(sd.id));
+      detailSupports.appendChild(pill);
+    });
+  }
+  // History
+  detailHistory.innerHTML='';
+  (doc.history||[]).forEach(h=>{
+    const li = document.createElement('li');
+    li.innerHTML = '<strong>'+h.version+'</strong> — '+h.date+' — <span class="subtle">'+h.note+'</span>';
+    detailHistory.appendChild(li);
+  });
+
+  // Editable sections with autosave + stamps
+  wireEditableBox(detailContext, doc.id, 'context', doc.details.context||'');
+  wireEditableBox(detailScope, doc.id, 'scope', doc.details.scope||'');
+  wireEditableBox(detailContent, doc.id, 'content', doc.details.content || (doc.summary||''));
+  wireEditableBox(detailRoles, doc.id, 'roles', doc.details.roles||'');
+  wireEditableBox(detailAppendices, doc.id, 'appendices', doc.details.appendices||'');
+
+  setDetailMode('read');
+  detailPanel.classList.add('show');
+  detailBackToLib.focus();
+  applyView('library');
+}
+);
   // Supports
   detailSupports.innerHTML='';
   if((doc.supportIds||[]).length===0){
