@@ -972,31 +972,7 @@ function showSavedBadge(el){
         setTimeout(()=>{
           badge.style.opacity = '0';
           setTimeout(()=> badge.remove(), 250);
-        }
-
-// ------------------------------ Detail read/edit tabs ------------------------------
-let detailMode = 'read';
-function setDetailMode(mode){
-  detailMode = mode;
-  const editable = (mode === 'edit');
-  const boxes = [detailContext, detailScope, detailContent, detailRoles, detailAppendices];
-  boxes.forEach(b => { if (b) b.setAttribute('contenteditable', editable ? 'true' : 'false'); });
-  const readBtn = document.getElementById('tabRead');
-  const editBtn = document.getElementById('tabEdit');
-  if (readBtn && editBtn){
-    readBtn.setAttribute('aria-pressed', mode === 'read' ? 'true' : 'false');
-    editBtn.setAttribute('aria-pressed', mode === 'edit' ? 'true' : 'false');
-  }
-}
-// Attach listeners once elements are available
-document.addEventListener('DOMContentLoaded', () => {
-  const readBtn = document.getElementById('tabRead');
-  const editBtn = document.getElementById('tabEdit');
-  if (readBtn) readBtn.addEventListener('click', () => setDetailMode('read'));
-  if (editBtn) editBtn.addEventListener('click', () => setDetailMode('edit'));
-});
-
-, 900);
+        }, 900);
       });
       return;
     }
